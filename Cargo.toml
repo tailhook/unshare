@@ -1,0 +1,19 @@
+[package]
+name = "unshare"
+description = """
+    The low-level inteface for linux namespaces (containers)
+"""
+license = "MIT"
+readme = "README.rst"
+keywords = ["linux", "container", "namespace", "docker", "process"]
+homepage = "http://github.com/tailhook/unshare"
+version = "0.1.0"
+authors = ["paul@colomiets.name"]
+
+[dependencies]
+libc = "*"
+
+[lib]
+name = "unshare"
+path = "src/lib.rs"
+

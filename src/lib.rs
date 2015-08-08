@@ -3,9 +3,12 @@ extern crate libc;
 mod namespace;
 mod idmap;
 mod chroot;
+mod ffi_util;
+mod std_api;
 
 use std::ffi::{CString, OsString};
 use std::collections::HashMap;
+use std::process::Stdio;
 
 use libc::{c_int, uid_t, gid_t};
 
@@ -19,6 +22,7 @@ struct Exec {
     environ: Vec<CString>,
 }
 
+#[derive(Default)]
 struct Config {
     death_sig: Option<c_int>,
     work_dir: Option<CString>,
@@ -32,12 +36,16 @@ struct Config {
     gid_map: Option<GidMapSetter>,
     // TODO(tailhook) stdin/stdout/stderr file descriptors
     // TODO(tailhook) sigmasks
-    // TODO(tailhook) wakeup pipe
+    // TODO(tailhook) wakeup/error pipe
     // TODO(tailhook) session leader
 }
 
-struct Process {
-    exec: Exec,
+pub struct Command {
+    filename: CString,
+    args: Vec<CString>,
     environ: Option<HashMap<OsString, OsString>>,
     cfg: Config,
+    stdin: Option<Stdio>,
+    stdout: Option<Stdio>,
+    stderr: Option<Stdio>,
 }

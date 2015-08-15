@@ -48,7 +48,7 @@ pub struct Command {
     stderr: Option<Stdio>,
 }
 
-pub struct ChildInfo<'a> {
+struct ChildInfo<'a> {
     filename: *const c_char,
     args: &'a [*const c_char],
     environ: &'a [*const c_char],

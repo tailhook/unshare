@@ -9,6 +9,8 @@ use nix;
 pub enum ErrorCode {
     CreatePipe = 1,
     Fork = 2,
+    Exec = 3,
+    Chdir = 4,
 }
 
 #[derive(Debug, Clone)]
@@ -26,6 +28,10 @@ pub enum Error {
     CreatePipe(i32),
     /// Error when forking process
     Fork(i32),
+    /// Error when running execve() systemcall
+    Exec(i32),
+    /// Error when setting working directory specified by user
+    Chdir(i32),
 }
 
 impl Error {
@@ -36,6 +42,8 @@ impl Error {
             &InvalidPath => None,
             &CreatePipe(x) => Some(x),
             &Fork(x) => Some(x),
+            &Exec(x) => Some(x),
+            &Chdir(x) => Some(x),
         }
     }
 }
@@ -47,6 +55,8 @@ impl StdError for Error {
             &InvalidPath => "invalid path passed as argument",
             &CreatePipe(_) => "can't create pipe",
             &Fork(_) => "error when forking",
+            &Exec(_) => "error when executing",
+            &Chdir(_) => "error when setting working directory",
         }
     }
 }
@@ -98,6 +108,8 @@ impl ErrorCode {
         match self {
             C::CreatePipe => E::CreatePipe(errno),
             C::Fork => E::Fork(errno),
+            C::Exec => E::Exec(errno),
+            C::Chdir => E::Chdir(errno),
         }
     }
 }

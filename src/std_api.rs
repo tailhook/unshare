@@ -83,13 +83,20 @@ impl Command {
 
     /// Sets the working directory for the child process.
     ///
-    /// Note: in case of chroot or pivot root the working directory is set
-    /// inside the new root.
+    /// Note: in case of `chroot` or `pivot_root` the working directory is
+    /// always set to something inside the new root. Algorithm is following:
     ///
-    /// However, if you leave `current_dir` unspecified chroot will translate
-    /// directory path, if possible or otherwise set root dir to new root.
-    /// The pivot_root behaves same as chroot, i.e. it doesn't set current
-    /// directory in `old_root`.
+    /// 1. If path is set to absolute path, current dir is this path *inside*
+    ///    the chroot
+    /// 2. Check if chroot dir is prefix of `env::current_dir()`. If it is
+    ///    set current directory to the suffix. Otherwise set current directory
+    ///    to the new root dir.
+    /// 3. If `current_dir` is specified (and relative) set working directory
+    ///    to the value (i.e. relative to the dir set in #2)
+    ///
+    /// The `pivot_root` is treated just the same as `chroot`. I.e. we will
+    /// not try to set working directory inside the `old_root`, unless path
+    /// inside is set explicitly by this method.
     ///
     /// At the end of the day, the ``cmd.current_dir(env::current_dir())`` is
     /// not no-op if using chroot/pivot_root.

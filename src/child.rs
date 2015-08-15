@@ -5,6 +5,7 @@ use nix;
 use libc::c_void;
 
 use run::ChildInfo;
+use error::ErrorCode as Err;
 
 // And at this point we've reached a special time in the life of the
 // child. The child must now be considered hamstrung and unable to
@@ -17,24 +18,34 @@ use run::ChildInfo;
 //
 
 pub unsafe fn child_after_clone(child: &ChildInfo) -> ! {
+
+    child.cfg.work_dir.as_ref().map(|dir| {
+        if libc::chdir(dir.as_ptr()) != 0 {
+            fail(Err::Chdir, child.error_pipe);
+        }
+    });
+
     ffi::execve(child.filename,
                 child.args.as_ptr(),
                 child.environ[..].as_ptr());
-    fail(child.error_pipe);
+    fail(Err::Exec, child.error_pipe);
 }
 
-unsafe fn fail(output: RawFd) -> ! {
+unsafe fn fail(code: Err, output: RawFd) -> ! {
     let errno = nix::errno::errno();
     let bytes = [
+        code as u8,
         (errno >> 24) as u8,
         (errno >> 16) as u8,
         (errno >>  8) as u8,
         (errno >>  0)  as u8,
-        ];
         // TODO(tailhook) rustc adds a special sentinel at the end of error
         // code. Do we really need it? Assuming our pipes are always cloexec'd.
+        ];
+    // Writes less than PIPE_BUF should be atomic. It's also unclear what
+    // to do if error happened anyway
     libc::write(output, bytes.as_ptr() as *const c_void, 4);
-    libc::_exit(1);
+    libc::_exit(127);
 }
 
 /// We don't use functions from nix here because they may allocate memory

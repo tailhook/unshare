@@ -3,7 +3,7 @@ Rust Unshare
 ============
 
 :Status: pre-alpha
-:Documentation: http://tailhook.github.io/unshare
+:Documentation: http://tailhook.github.io/unshare/
 
 
 Unshare is a low-level library to create linux containers.
@@ -18,11 +18,13 @@ It contains the following (mostly work in progress):
 * Should run both as root user and as unprivileged user
 
 The following is considered:
+
 * Capture input (should be, because part of ``std::process`` interface)
 * Pseudo tty creation for child
 * The ``unshare`` and ``setns``
 
 The following is out of scope:
+
 * mounting file systems
 * setting up network
 * in-container and out of container supervision

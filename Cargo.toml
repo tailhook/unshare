@@ -1,13 +1,14 @@
 [package]
 name = "unshare"
 description = """
-    The low-level inteface for linux namespaces (containers)
+    The low-level inteface for linux namespaces (containers). Work in progress.
 """
 license = "MIT"
 readme = "README.rst"
 keywords = ["linux", "container", "namespace", "docker", "process"]
 homepage = "http://github.com/tailhook/unshare"
-version = "0.1.0"
+documentation = "http://tailhook.github.io/unshare/"
+version = "0.0.1"
 authors = ["paul@colomiets.name"]
 
 [dependencies]

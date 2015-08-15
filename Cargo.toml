@@ -15,6 +15,9 @@ authors = ["paul@colomiets.name"]
 libc = "*"
 nix = "*"
 
+[dev-dependencies]
+argparse = "*"
+
 [lib]
 name = "unshare"
 path = "src/lib.rs"

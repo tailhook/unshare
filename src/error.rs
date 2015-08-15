@@ -11,16 +11,25 @@ pub enum ErrorCode {
     Fork = 2,
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone)]
 pub enum Error {
+    /// Invalid path somewhere when running command. Presumably has embedded
+    /// nulls.
+    ///
+    /// Frankly, this error should not happen when running process. We just
+    /// keep it here in case `nix` returns this error, which should not happen.
     InvalidPath, // Not sure it's possible, but it is here to convert from
                  // nix::Error safer
+    /// Error happened when we were trying to create pipe. The pipes used for
+    /// two purposes: (a) for the process's stdio, (b) internally to wake up
+    /// child process and return error back to the parent.
     CreatePipe(i32),
+    /// Error when forking process
     Fork(i32),
 }
 
 impl Error {
-    /// Similarly to io::Error returns bare error code
+    /// Similarly to `io::Error` returns bare error code
     pub fn raw_os_error(&self) -> Option<i32> {
         use self::Error::*;
         match self {

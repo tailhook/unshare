@@ -1,14 +1,27 @@
 use std::io;
 use std::ffi::CString;
-use std::os::unix::ffi::{OsStringExt, OsStrExt};
+use std::os::unix::io::RawFd;
+use std::os::unix::ffi::{OsStrExt};
 
 use nix;
 use libc;
 use nix::unistd::pipe2;
 use nix::fcntl::O_CLOEXEC;
+use libc::c_char;
 
-use super::child;
-use {Command, Child, ChildInfo};
+use child;
+use config::Config;
+use {Command, Child};
+
+pub struct ChildInfo<'a> {
+    pub filename: *const c_char,
+    pub args: &'a [*const c_char],
+    pub environ: &'a [*const c_char],
+    pub cfg: &'a Config,
+    pub wakeup_pipe: RawFd,
+    pub error_pipe: RawFd,
+    // TODO(tailhook) stdin, stdout, stderr
+}
 
 fn nixerr<T>(r: nix::Result<T>) -> io::Result<T> {
     r.map_err(|e| match e {

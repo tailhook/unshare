@@ -15,6 +15,8 @@ It contains the following (mostly work in progress):
 * Ability to change root (chroot/pivot_root), uid, gid, gid_map
 * Some signal mask handling (especially for new processes)
 * Forwarding file descriptors and other unixy stuff (sessions, terminals)
+* Clearing capabilities
+* Setting few important prctl flags
 * Should run both as root user and as unprivileged user
 
 The following is considered:

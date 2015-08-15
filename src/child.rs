@@ -4,7 +4,7 @@ use libc;
 use nix;
 use libc::c_void;
 
-use ChildInfo;
+use run::ChildInfo;
 
 // And at this point we've reached a special time in the life of the
 // child. The child must now be considered hamstrung and unable to
@@ -31,6 +31,8 @@ unsafe fn fail(output: RawFd) -> ! {
         (errno >>  8) as u8,
         (errno >>  0)  as u8,
         ];
+        // TODO(tailhook) rustc adds a special sentinel at the end of error
+        // code. Do we really need it? Assuming our pipes are always cloexec'd.
     libc::write(output, bytes.as_ptr() as *const c_void, 4);
     libc::_exit(1);
 }

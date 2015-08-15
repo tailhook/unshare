@@ -1,4 +1,4 @@
-use std::ffi::{CString, OsStr, OsString};
+use std::ffi::{CString, OsStr};
 use std::os::unix::ffi::OsStrExt;
 
 

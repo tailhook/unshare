@@ -1,17 +1,19 @@
 use std::io;
+use std::fs::File;
 use std::ffi::CString;
-use std::os::unix::io::RawFd;
+use std::os::unix::io::{RawFd, FromRawFd};
 use std::os::unix::ffi::{OsStrExt};
 
 use nix;
 use libc;
-use nix::unistd::pipe2;
-use nix::fcntl::O_CLOEXEC;
 use libc::c_char;
+use nix::errno::errno;
 
 use child;
 use config::Config;
 use {Command, Child};
+use error::Error;
+use pipe::Pipe;
 
 pub struct ChildInfo<'a> {
     pub filename: *const c_char,
@@ -23,30 +25,16 @@ pub struct ChildInfo<'a> {
     // TODO(tailhook) stdin, stdout, stderr
 }
 
-fn nixerr<T>(r: nix::Result<T>) -> io::Result<T> {
-    r.map_err(|e| match e {
-        nix::Error::Sys(eno) => io::Error::from_raw_os_error(eno as i32),
-        nix::Error::InvalidPath => {
-            panic!("Invalid path somewhere. Must not happen");
-        },
-    })
-}
-
 impl Command {
-    pub fn spawn(&mut self) -> io::Result<Child> {
+    pub fn spawn(&mut self) -> Result<Child, Error> {
         self.init_env_map();
         unsafe { self.spawn_inner() }
     }
 
-    unsafe fn spawn_inner(&self) -> io::Result<Child> {
+    unsafe fn spawn_inner(&self) -> Result<Child, Error> {
         // TODO(tailhook) add RAII for pipes
-        let (wakeup_reader, wakeup_writer) = try!(nixerr(pipe2(O_CLOEXEC)));
-        let (error_reader, error_writer) = try!(nixerr(pipe2(O_CLOEXEC)));
-
-        let pid = libc::fork();
-        if pid < 0 {
-            return Err(io::Error::last_os_error());
-        }
+        let wakeup = try!(Pipe::new());
+        let errpipe = try!(Pipe::new());
 
         let c_args = self.args.iter().map(|a| a.as_ptr()).collect::<Vec<_>>();
 
@@ -59,20 +47,22 @@ impl Command {
             }).collect();
         let c_environ: Vec<_> = environ.iter().map(|x| x.as_ptr()).collect();
 
-        let child_info = ChildInfo {
-            filename: self.filename.as_ptr(),
-            args: &c_args[..],
-            environ: &c_environ[..],
-            cfg: &self.config,
-            wakeup_pipe: wakeup_reader,
-            error_pipe: error_writer,
-        };
-
-        if pid == 0 {
+        let pid = libc::fork();
+        if pid < 0 {
+            return Err(Error::Fork(errno()));
+        } else if pid == 0 {
+            let child_info = ChildInfo {
+                filename: self.filename.as_ptr(),
+                args: &c_args[..],
+                environ: &c_environ[..],
+                cfg: &self.config,
+                wakeup_pipe: wakeup.into_reader(),
+                error_pipe: errpipe.into_writer(),
+            };
             child::child_after_clone(&child_info);
-        } else {
-
         }
+        let errpipe = File::from_raw_fd(errpipe.into_reader());
+        let wakeup = File::from_raw_fd(wakeup.into_writer());
 
         Ok(Child {
             pid: pid,

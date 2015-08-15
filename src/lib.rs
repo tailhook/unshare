@@ -16,6 +16,8 @@ mod chroot;
 mod ffi_util;
 mod std_api;
 mod config;
+mod error;
+mod pipe;
 mod child;
 mod run;
 

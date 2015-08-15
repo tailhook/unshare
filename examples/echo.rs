@@ -8,4 +8,5 @@ fn main() {
 
     let child = cmd.spawn().unwrap();
     println!("CHILD {:?}", child);
+    ::std::thread::sleep_ms(100); // TODO(tailhook) use child.wait()
 }

@@ -1,4 +1,5 @@
 use std::io;
+use std::ptr;
 use std::fs::File;
 use std::ffi::CString;
 use std::os::unix::io::{RawFd, FromRawFd};
@@ -25,6 +26,15 @@ pub struct ChildInfo<'a> {
     // TODO(tailhook) stdin, stdout, stderr
 }
 
+fn raw_with_null(arr: &Vec<CString>) -> Vec<*const c_char> {
+    let mut vec = Vec::with_capacity(arr.len() + 1);
+    for i in arr {
+        vec.push(i.as_ptr());
+    }
+    vec.push(ptr::null());
+    return vec;
+}
+
 impl Command {
     pub fn spawn(&mut self) -> Result<Child, Error> {
         self.init_env_map();
@@ -36,7 +46,7 @@ impl Command {
         let wakeup = try!(Pipe::new());
         let errpipe = try!(Pipe::new());
 
-        let c_args = self.args.iter().map(|a| a.as_ptr()).collect::<Vec<_>>();
+        let c_args = raw_with_null(&self.args);
 
         let environ: Vec<CString> = self.environ.as_ref().unwrap()
             .iter().map(|(k, v)| {
@@ -45,7 +55,7 @@ impl Command {
                 pair.extend(v.as_bytes());
                 CString::new(pair).unwrap()
             }).collect();
-        let c_environ: Vec<_> = environ.iter().map(|x| x.as_ptr()).collect();
+        let c_environ: Vec<_> = raw_with_null(&environ);
 
         let pid = libc::fork();
         if pid < 0 {

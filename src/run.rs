@@ -37,6 +37,10 @@ fn raw_with_null(arr: &Vec<CString>) -> Vec<*const c_char> {
 
 impl Command {
     pub fn spawn(&mut self) -> Result<Child, Error> {
+        // TODO(tailhook) We need mutable self only for init_env_map. Probably
+        // we might do this internally and don't modify Command. That would 
+        // be more clear and also allow to print Display command easily in 
+        // error handler
         self.init_env_map();
         unsafe { self.spawn_inner() }
     }

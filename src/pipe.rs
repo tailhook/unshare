@@ -25,13 +25,13 @@ impl Pipe {
     pub unsafe fn into_reader(self) -> i32 {
         let Pipe(rd, wr) = self;
         mem::forget(self);
-        libc::close(rd);
-        return wr;
+        libc::close(wr);
+        return rd;
     }
     pub unsafe fn into_writer(self) -> i32 {
         let Pipe(rd, wr) = self;
         mem::forget(self);
-        libc::close(wr);
+        libc::close(rd);
         return wr;
     }
 }

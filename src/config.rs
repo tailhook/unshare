@@ -1,14 +1,15 @@
+use std::default::Default;
 use std::ffi::CString;
 
-use libc::{c_int, uid_t, gid_t};
+use nix::sys::signal::{SigNum, SIGKILL};
+use libc::{uid_t, gid_t, c_int};
 
 use idmap::{UidMapSetter, GidMapSetter};
 use chroot::Pivot;
 
 
-#[derive(Default)]
 pub struct Config {
-    pub death_sig: Option<c_int>,
+    pub death_sig: Option<SigNum>,
     pub work_dir: Option<CString>,
     pub chroot_dir: Option<CString>,
     pub pivot_root: Option<Pivot>,  // TODO(tailhook) related to chroot_dir
@@ -22,4 +23,21 @@ pub struct Config {
     // TODO(tailhook) sigmasks
     // TODO(tailhook) wakeup/error pipe
     // TODO(tailhook) session leader
+}
+
+impl Default for Config {
+    fn default() -> Config {
+        Config {
+            death_sig: Some(SIGKILL),
+            work_dir: None,
+            chroot_dir: None,
+            pivot_root: None,
+            uid: None,
+            gid: None,
+            supplementary_gids: None,
+            namespaces: None,
+            uid_map: None,
+            gid_map: None,
+        }
+    }
 }

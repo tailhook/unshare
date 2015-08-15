@@ -36,7 +36,7 @@ fn main() {
             ::std::thread::sleep_ms(100);
         }
         Err(e) => {
-            write!(&mut stderr(), "Error: {}", e).ok();
+            writeln!(&mut stderr(), "Error: {}", e).ok();
         }
     }
 }

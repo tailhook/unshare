@@ -12,6 +12,7 @@ authors = ["paul@colomiets.name"]
 
 [dependencies]
 libc = "*"
+nix = "*"
 
 [lib]
 name = "unshare"

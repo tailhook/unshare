@@ -1,26 +1,24 @@
 extern crate libc;
+extern crate nix;
 
 mod namespace;
 mod idmap;
 mod chroot;
 mod ffi_util;
 mod std_api;
+mod child;
+mod run;
 
+use std::os::unix::io::RawFd;
 use std::ffi::{CString, OsString};
 use std::collections::HashMap;
 use std::process::Stdio;
 
-use libc::{c_int, uid_t, gid_t};
+use libc::{c_int, uid_t, gid_t, c_char, pid_t};
 
 use namespace::Namespace;
 use idmap::{UidMapSetter, GidMapSetter};
 use chroot::Pivot;
-
-struct Exec {
-    filename: CString,
-    args: Vec<CString>,
-    environ: Vec<CString>,
-}
 
 #[derive(Default)]
 struct Config {
@@ -44,8 +42,24 @@ pub struct Command {
     filename: CString,
     args: Vec<CString>,
     environ: Option<HashMap<OsString, OsString>>,
-    cfg: Config,
+    config: Config,
     stdin: Option<Stdio>,
     stdout: Option<Stdio>,
     stderr: Option<Stdio>,
+}
+
+pub struct ChildInfo<'a> {
+    filename: *const c_char,
+    args: &'a [*const c_char],
+    environ: &'a [*const c_char],
+    cfg: &'a Config,
+    wakeup_pipe: RawFd,
+    error_pipe: RawFd,
+    // TODO(tailhook) stdin, stdout, stderr
+}
+
+#[derive(Debug)]
+pub struct Child {
+    pid: pid_t,
+    //status: Option<ExitStatus>,
 }

@@ -31,7 +31,7 @@ impl Command {
             filename: program.to_cstring(),
             args: vec![program.to_cstring()],
             environ: None,
-            cfg: Default::default(),
+            config: Default::default(),
             stdin: None,
             stdout: None,
             stderr: None,
@@ -50,7 +50,8 @@ impl Command {
         self
     }
 
-    fn init_env_map(&mut self) {
+    // TODO(tailhook) It's only public for our run module any better way?
+    pub fn init_env_map(&mut self) {
         if self.environ.is_none() {
             self.environ = Some(env::vars_os().collect());
         }
@@ -69,6 +70,7 @@ impl Command {
 
     /// Removes an environment variable mapping.
     pub fn env_remove<K: AsRef<OsStr>>(&mut self, key: K) -> &mut Command {
+        self.init_env_map();
         self.environ.as_mut().unwrap().remove(key.as_ref());
         self
     }
@@ -93,7 +95,7 @@ impl Command {
     /// not no-op if using chroot/pivot_root.
     pub fn current_dir<P: AsRef<Path>>(&mut self, dir: P) -> &mut Command
     {
-        self.cfg.work_dir = Some(dir.as_ref().to_cstring());
+        self.config.work_dir = Some(dir.as_ref().to_cstring());
         self
     }
 

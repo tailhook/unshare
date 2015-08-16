@@ -40,6 +40,10 @@ pub enum Error {
     ParentDeathSignal(i32),
     /// Error reading/writing through one of the two signal pipes
     PipeError(i32),
+    /// Error waiting for process (for some functions only, for example
+    /// ``Command::status()``). It probably means someone already waited for
+    /// the process, for example it might be other thread, or signal handler.
+    WaitError(i32),
 }
 
 impl Error {
@@ -55,6 +59,7 @@ impl Error {
             &Chdir(x) => Some(x),
             &ParentDeathSignal(x) => Some(x),
             &PipeError(x) => Some(x),
+            &WaitError(x) => Some(x),
         }
     }
 }
@@ -71,6 +76,7 @@ impl StdError for Error {
             &Chdir(_) => "error when setting working directory",
             &ParentDeathSignal(_) => "error when death signal",
             &PipeError(_) => "error in signalling pipe",
+            &WaitError(_) => "error in waiting for child",
         }
     }
 }

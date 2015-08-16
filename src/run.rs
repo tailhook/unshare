@@ -11,7 +11,7 @@ use nix::errno::errno;
 
 use child;
 use config::Config;
-use {Command, Child};
+use {Command, Child, ExitStatus};
 use error::{Error, result};
 use error::ErrorCode as Err;
 use pipe::Pipe;
@@ -36,6 +36,12 @@ fn raw_with_null(arr: &Vec<CString>) -> Vec<*const c_char> {
 }
 
 impl Command {
+    pub fn status(&mut self) -> Result<ExitStatus, Error> {
+        // TODO(tailhook) stdin/stdout/stderr
+        try!(self.spawn())
+        .wait()
+        .map_err(|e| Error::WaitError(e.raw_os_error().unwrap_or(0)))
+    }
     pub fn spawn(&mut self) -> Result<Child, Error> {
         // TODO(tailhook) We need mutable self only for init_env_map. Probably
         // we might do this internally and don't modify Command. That would

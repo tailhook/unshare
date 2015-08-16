@@ -93,7 +93,7 @@ impl Command {
 
         Ok(Child {
             pid: pid,
-            //status: None,
+            status: None,
         })
     }
 }

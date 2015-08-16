@@ -13,7 +13,7 @@ authors = ["paul@colomiets.name"]
 
 [dependencies]
 libc = "*"
-nix = "*"
+nix = { git = "git://github.com/carllerche/nix-rust" }
 
 [dev-dependencies]
 argparse = "*"

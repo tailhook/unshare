@@ -35,8 +35,11 @@ mod pipe;
 mod child;
 mod linux;
 mod run;
+mod status;
+mod wait;
 
 pub use error::Error;
+pub use status::ExitStatus;
 
 use std::ffi::{CString, OsString};
 use std::collections::HashMap;
@@ -60,5 +63,5 @@ pub struct Command {
 #[derive(Debug)]
 pub struct Child {
     pid: pid_t,
-    //status: Option<ExitStatus>,
+    status: Option<ExitStatus>,
 }

@@ -26,7 +26,7 @@ impl Child {
     }
 
 
-    pub fn _wait(&mut self) -> Result<ExitStatus, io::Error> {
+    fn _wait(&mut self) -> Result<ExitStatus, io::Error> {
         use nix::sys::wait::WaitStatus::*;
         loop {
             match waitpid(self.pid, None) {

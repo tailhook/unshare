@@ -3,7 +3,9 @@ use nix::sys::signal::SigNum;
 
 #[derive(Debug, Clone, Copy)]
 pub enum ExitStatus {
+    /// Process exited normally with some exit code
     Exited(i8),
+    /// Process was killed by a signal (bool flag is true when core is dumped)
     Signaled(SigNum, /* dore dumped */bool)
 }
 

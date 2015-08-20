@@ -78,13 +78,13 @@ impl Command {
                 args: &c_args[..],
                 environ: &c_environ[..],
                 cfg: &self.config,
-                wakeup_pipe: wakeup.into_reader(),
-                error_pipe: errpipe.into_writer(),
+                wakeup_pipe: wakeup.into_reader_fd(),
+                error_pipe: errpipe.into_writer_fd(),
             };
             child::child_after_clone(&child_info);
         }
-        let mut errpipe = File::from_raw_fd(errpipe.into_reader());
-        let mut wakeup = File::from_raw_fd(wakeup.into_writer());
+        let mut errpipe = errpipe.into_reader();
+        let mut wakeup = wakeup.into_writer();
 
         try!(result(Err::PipeError, wakeup.write_all(b"x")));
         let mut err = [0u8; 6];

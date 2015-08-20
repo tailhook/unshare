@@ -11,8 +11,11 @@ use error::{result, Error};
 use error::ErrorCode::CreatePipe;
 
 
+#[derive(Debug)]
 pub struct Pipe(RawFd, RawFd);
+#[derive(Debug)]
 pub struct PipeReader(RawFd);
+#[derive(Debug)]
 pub struct PipeWriter(RawFd);
 
 
@@ -32,6 +35,11 @@ impl Pipe {
         mem::forget(self);
         unsafe { libc::close(rd) };
         return PipeWriter(wr);
+    }
+    pub fn split(self) -> (PipeReader, PipeWriter) {
+        let Pipe(rd, wr) = self;
+        mem::forget(self);
+        (PipeReader(rd), PipeWriter(wr))
     }
 }
 
@@ -59,6 +67,22 @@ impl Drop for Pipe {
             libc::close(x);
             libc::close(y);
         }
+    }
+}
+
+impl PipeReader {
+    pub fn into_fd(self) -> RawFd {
+        let PipeReader(fd) = self;
+        mem::forget(self);
+        return fd;
+    }
+}
+
+impl PipeWriter {
+    pub fn into_fd(self) -> RawFd {
+        let PipeWriter(fd) = self;
+        mem::forget(self);
+        return fd;
     }
 }
 

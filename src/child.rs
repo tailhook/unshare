@@ -12,16 +12,20 @@ use error::ErrorCode as Err;
 // child. The child must now be considered hamstrung and unable to
 // do anything other than syscalls really.
 //
-// ESPECIALLY YOU CAN NOT DO MEMORY ALLOCATIONS
+// ESPECIALLY YOU CAN NOT DO MEMORY (DE)ALLOCATIONS
 //
 // See better explanation at:
 // https://github.com/rust-lang/rust/blob/c1e865c/src/libstd/sys/unix/process.rs#L202
 //
 
+// In particular ChildInfo is passed by refernce here to avoid
+// deallocating (parts of) it.
 pub unsafe fn child_after_clone(child: &ChildInfo) -> ! {
+    let mut epipe = child.error_pipe;
+
     child.cfg.death_sig.as_ref().map(|&sig| {
         if ffi::prctl(ffi::PR_SET_PDEATHSIG, sig as c_ulong, 0, 0, 0) != 0 {
-            fail(Err::ParentDeathSignal, child.error_pipe);
+            fail(Err::ParentDeathSignal, epipe);
         }
     });
 
@@ -62,16 +66,37 @@ pub unsafe fn child_after_clone(child: &ChildInfo) -> ! {
         }
     }
 
+    // Move error pipe file descriptors in case they clobber stdio
+    while epipe < 3 {
+        let nerr = libc::fcntl(epipe, ffi::F_DUPFD_CLOEXEC);
+        if nerr < 0 {
+            fail(Err::CreatePipe, epipe);
+        }
+        epipe = nerr;
+    }
+
     child.cfg.work_dir.as_ref().map(|dir| {
         if libc::chdir(dir.as_ptr()) != 0 {
-            fail(Err::Chdir, child.error_pipe);
+            fail(Err::Chdir, epipe);
         }
     });
+
+    if child.stdin != 0 && libc::dup2(child.stdin, 0) < 0 {
+        fail(Err::StdioError, epipe);
+    }
+
+    if child.stdout != 1 && libc::dup2(child.stdout, 1) < 0 {
+        fail(Err::StdioError, epipe);
+    }
+
+    if child.stderr != 2 && libc::dup2(child.stderr, 2) < 0 {
+        fail(Err::StdioError, epipe);
+    }
 
     ffi::execve(child.filename,
                 child.args.as_ptr(),
                 child.environ[..].as_ptr());
-    fail(Err::Exec, child.error_pipe);
+    fail(Err::Exec, epipe);
 }
 
 unsafe fn fail(code: Err, output: RawFd) -> ! {
@@ -96,6 +121,7 @@ unsafe fn fail(code: Err, output: RawFd) -> ! {
 mod ffi {
     use libc::{c_char, c_int, c_ulong};
 
+    pub const F_DUPFD_CLOEXEC: c_int = 1030;
     pub const PR_SET_PDEATHSIG: c_int = 1;
 
     extern {

@@ -13,6 +13,7 @@ pub enum ErrorCode {
     Chdir = 4,
     ParentDeathSignal = 5,
     PipeError = 6,
+    StdioError = 7,
 }
 
 #[derive(Debug, Clone)]
@@ -27,8 +28,10 @@ pub enum Error {
     /// Some invalid error code received from child application
     UnknownError,
     /// Error happened when we were trying to create pipe. The pipes used for
-    /// two purposes: (a) for the process's stdio, (b) internally to wake up
-    /// child process and return error back to the parent.
+    /// two purposes: (a) for the process's stdio (`Stdio::pipe()` or
+    /// `Stdio::null()`), (b) internally to wake up child process and return
+    /// error back to the parent.
+    // TODO(tailhook) should create pipe be split into PipeError and StdioError
     CreatePipe(i32),
     /// Error when forking process
     Fork(i32),
@@ -44,6 +47,8 @@ pub enum Error {
     /// ``Command::status()``). It probably means someone already waited for
     /// the process, for example it might be other thread, or signal handler.
     WaitError(i32),
+    /// Error setting up stdio for process
+    StdioError(i32),
 }
 
 impl Error {
@@ -60,6 +65,7 @@ impl Error {
             &ParentDeathSignal(x) => Some(x),
             &PipeError(x) => Some(x),
             &WaitError(x) => Some(x),
+            &StdioError(x) => Some(x),
         }
     }
 }
@@ -77,6 +83,7 @@ impl StdError for Error {
             &ParentDeathSignal(_) => "error when death signal",
             &PipeError(_) => "error in signalling pipe",
             &WaitError(_) => "error in waiting for child",
+            &StdioError(_) => "error setting up stdio for child",
         }
     }
 }
@@ -138,6 +145,7 @@ impl ErrorCode {
             C::Chdir => E::Chdir(errno),
             C::ParentDeathSignal => E::ParentDeathSignal(errno),
             C::PipeError => E::PipeError(errno),
+            C::StdioError => E::StdioError(errno),
         }
     }
     pub fn from_i32(code: i32, errno: i32) -> Error {
@@ -151,6 +159,7 @@ impl ErrorCode {
             c if c == C::ParentDeathSignal as i32
                                                 => E::ParentDeathSignal(errno),
             c if c == C::PipeError as i32 => E::PipeError(errno),
+            c if c == C::StdioError as i32 => E::StdioError(errno),
             _ => E::UnknownError,
         }
     }

@@ -37,13 +37,15 @@ mod linux;
 mod run;
 mod status;
 mod wait;
+mod stdio;
 
 pub use error::Error;
 pub use status::ExitStatus;
+pub use stdio::Stdio;
+pub use pipe::{PipeReader, PipeWriter};
 
 use std::ffi::{CString, OsString};
 use std::collections::HashMap;
-use std::process::Stdio;
 
 use libc::{pid_t};
 
@@ -64,4 +66,7 @@ pub struct Command {
 pub struct Child {
     pid: pid_t,
     status: Option<ExitStatus>,
+    pub stdin: Option<PipeWriter>,
+    pub stdout: Option<PipeReader>,
+    pub stderr: Option<PipeReader>,
 }

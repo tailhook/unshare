@@ -1,20 +1,24 @@
 use std::io::{Read, Write};
 use std::ptr;
-use std::fs::File;
+use std::path::Path;
 use std::ffi::CString;
-use std::os::unix::io::{RawFd, FromRawFd};
+use std::os::unix::io::{RawFd, AsRawFd};
 use std::os::unix::ffi::{OsStrExt};
 
 use libc;
 use libc::c_char;
 use nix::errno::errno;
+use nix::fcntl::{open, O_CLOEXEC, O_RDONLY, O_WRONLY};
+use nix::sys::stat::Mode;
 
 use child;
 use config::Config;
-use {Command, Child, ExitStatus};
+use {Command, Child, ExitStatus, Stdio};
 use error::{Error, result};
 use error::ErrorCode as Err;
 use pipe::Pipe;
+use stdio::Closing;
+
 
 pub struct ChildInfo<'a> {
     pub filename: *const c_char,
@@ -23,7 +27,9 @@ pub struct ChildInfo<'a> {
     pub cfg: &'a Config,
     pub wakeup_pipe: RawFd,
     pub error_pipe: RawFd,
-    // TODO(tailhook) stdin, stdout, stderr
+    pub stdin: RawFd,
+    pub stdout: RawFd,
+    pub stderr: RawFd,
 }
 
 fn raw_with_null(arr: &Vec<CString>) -> Vec<*const c_char> {
@@ -69,6 +75,57 @@ impl Command {
             }).collect();
         let c_environ: Vec<_> = raw_with_null(&environ);
 
+        let (outer_in, _guard_in, inner_in) = match &self.stdin {
+            &Some(Stdio::Pipe) => {
+                let (rd, wr) = try!(Pipe::new()).split();
+                let fd = rd.into_fd();
+                (Some(wr), Some(Closing::new(fd)), fd)
+            }
+            &Some(Stdio::Null) => {
+                // Need to keep fd with cloexec, until we are in child
+                let fd = try!(result(Err::CreatePipe,
+                    open(Path::new("/dev/null"), O_CLOEXEC|O_RDONLY,
+                         Mode::empty())));
+                (None, Some(Closing::new(fd)), fd)
+            }
+            &None | &Some(Stdio::Inherit) => (None, None, 0),
+            &Some(Stdio::Fd(ref x)) => (None, None, x.as_raw_fd()),
+        };
+
+        let (outer_out, _guard_out, inner_out) = match &self.stdout {
+            &Some(Stdio::Pipe) => {
+                let (rd, wr) = try!(Pipe::new()).split();
+                let fd = wr.into_fd();
+                (Some(rd), Some(Closing::new(fd)), fd)
+            }
+            &Some(Stdio::Null) => {
+                // Need to keep fd with cloexec, until we are in child
+                let fd = try!(result(Err::CreatePipe,
+                    open(Path::new("/dev/null"), O_CLOEXEC|O_WRONLY,
+                         Mode::empty())));
+                (None, Some(Closing::new(fd)), fd)
+            }
+            &None | &Some(Stdio::Inherit) => (None, None, 1),
+            &Some(Stdio::Fd(ref x)) => (None, None, x.as_raw_fd()),
+        };
+
+        let (outer_err, _guard_err, inner_err) = match &self.stderr {
+            &Some(Stdio::Pipe) => {
+                let (rd, wr) = try!(Pipe::new()).split();
+                let fd = wr.into_fd();
+                (Some(rd), Some(Closing::new(fd)), fd)
+            }
+            &Some(Stdio::Null) => {
+                // Need to keep fd with cloexec, until we are in child
+                let fd = try!(result(Err::CreatePipe,
+                    open(Path::new("/dev/null"), O_CLOEXEC|O_WRONLY,
+                         Mode::empty())));
+                (None, Some(Closing::new(fd)), fd)
+            }
+            &None | &Some(Stdio::Inherit) => (None, None, 2),
+            &Some(Stdio::Fd(ref x)) => (None, None, x.as_raw_fd()),
+        };
+
         let pid = libc::fork();
         if pid < 0 {
             return Err(Error::Fork(errno()));
@@ -80,6 +137,9 @@ impl Command {
                 cfg: &self.config,
                 wakeup_pipe: wakeup.into_reader_fd(),
                 error_pipe: errpipe.into_writer_fd(),
+                stdin: inner_in,
+                stdout: inner_out,
+                stderr: inner_err,
             };
             child::child_after_clone(&child_info);
         }
@@ -102,6 +162,9 @@ impl Command {
         Ok(Child {
             pid: pid,
             status: None,
+            stdin: outer_in,
+            stdout: outer_out,
+            stderr: outer_err,
         })
     }
 }

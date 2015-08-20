@@ -10,10 +10,10 @@ use std::default::Default;
 use std::collections::HashMap;
 use std::env;
 use std::path::Path;
-use std::process::Stdio;
 
 use ffi_util::ToCString;
-use Command;
+use {Command, Stdio};
+
 
 impl Command {
     /// Constructs a new `Command` for launching the program at

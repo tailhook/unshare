@@ -2,7 +2,7 @@ use std::os::unix::io::RawFd;
 
 use libc;
 use nix;
-use libc::{c_void, c_ulong};
+use libc::{c_void, c_ulong, size_t};
 use libc::funcs::posix88::signal::kill;
 
 use run::ChildInfo;
@@ -75,11 +75,30 @@ pub unsafe fn child_after_clone(child: &ChildInfo) -> ! {
         epipe = nerr;
     }
 
+    child.cfg.gid.as_ref().map(|&gid| {
+        if libc::setgid(gid) != 0 {
+            fail(Err::SetUser, epipe);
+        }
+    });
+
+    child.cfg.supplementary_gids.as_ref().map(|groups| {
+        if ffi::setgroups(groups.len() as size_t, groups.as_ptr()) != 0 {
+            fail(Err::SetUser, epipe);
+        }
+    });
+
+    child.cfg.uid.as_ref().map(|&uid| {
+        if libc::setuid(uid) != 0 {
+            fail(Err::SetUser, epipe);
+        }
+    });
+
     child.cfg.work_dir.as_ref().map(|dir| {
         if libc::chdir(dir.as_ptr()) != 0 {
             fail(Err::Chdir, epipe);
         }
     });
+
 
     if child.stdin != 0 && libc::dup2(child.stdin, 0) < 0 {
         fail(Err::StdioError, epipe);
@@ -119,7 +138,7 @@ unsafe fn fail(code: Err, output: RawFd) -> ! {
 /// We don't use functions from nix here because they may allocate memory
 /// which we can't to this this module.
 mod ffi {
-    use libc::{c_char, c_int, c_ulong};
+    use libc::{c_char, c_int, c_ulong, size_t, gid_t};
 
     pub const F_DUPFD_CLOEXEC: c_int = 1030;
     pub const PR_SET_PDEATHSIG: c_int = 1;
@@ -129,5 +148,6 @@ mod ffi {
                       envp: *const *const c_char) -> c_int;
         pub fn prctl(option: c_int, arg2: c_ulong, arg3: c_ulong,
             arg4: c_ulong, arg5: c_ulong) -> c_int;
+        pub fn setgroups(size: size_t, gids: *const gid_t) -> c_int;
     }
 }

@@ -1,9 +1,11 @@
 extern crate unshare;
 extern crate argparse;
+extern crate libc;
 
 use std::io::{stderr, Write, Read};
 use std::process::exit;
 
+use libc::{uid_t, gid_t};
 use argparse::{ArgumentParser, Store, StoreOption, Collect, StoreTrue};
 
 
@@ -13,6 +15,9 @@ fn main() {
     let mut workdir = None::<String>;
     let mut verbose = false;
     let mut escape_stdout = false;
+    let mut uid = None::<uid_t>;
+    let mut gid = None::<gid_t>;
+    let mut groups = Vec::<gid_t>::new();
     {  // this block limits scope of borrows by ap.refer() method
         let mut ap = ArgumentParser::new();
         ap.set_description("Run command with changed process state");
@@ -32,6 +37,15 @@ fn main() {
             .add_option(&["--escape-stdout"], StoreTrue, "
                 Read data written by the utility to stdout and print it back
                 as a quoted string with binary data escaped");
+        ap.refer(&mut uid)
+            .add_option(&["-U", "--uid"], StoreOption, "
+                Set user id for the target process");
+        ap.refer(&mut gid)
+            .add_option(&["-G", "--gid"], StoreOption, "
+                Set group id for the target process");
+        ap.refer(&mut groups)
+            .add_option(&["--add-group"], Collect, "
+                Add supplementary group id");
         ap.stop_on_first_argument(true);
         ap.parse_args_or_exit();
     }
@@ -39,6 +53,9 @@ fn main() {
     let mut cmd = unshare::Command::new(&command);
     cmd.args(&args[..]);
     workdir.map(|dir| cmd.current_dir(dir));
+    gid.map(|gid| cmd.gid(gid));
+    uid.map(|uid| cmd.uid(uid));
+    if groups.len() > 0 { cmd.groups(groups); }
     if escape_stdout {
         cmd.stdout(unshare::Stdio::piped());
     }
@@ -60,7 +77,7 @@ fn main() {
         let mut buf = Vec::new();
         child.stdout.take().unwrap().read_to_end(&mut buf).unwrap();
         writeln!(&mut stderr(), "{:?}",
-            String::from_utf8_lossy(&buf[..]));
+            String::from_utf8_lossy(&buf[..])).unwrap();
     }
     let res = child.wait().unwrap();
     if verbose {

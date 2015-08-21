@@ -14,6 +14,7 @@ pub enum ErrorCode {
     ParentDeathSignal = 5,
     PipeError = 6,
     StdioError = 7,
+    SetUser = 8,
 }
 
 #[derive(Debug, Clone)]
@@ -49,6 +50,9 @@ pub enum Error {
     WaitError(i32),
     /// Error setting up stdio for process
     StdioError(i32),
+    /// Could not set supplementary groups, group id  or user id for the
+    /// process
+    SetUser(i32),
 }
 
 impl Error {
@@ -66,6 +70,7 @@ impl Error {
             &PipeError(x) => Some(x),
             &WaitError(x) => Some(x),
             &StdioError(x) => Some(x),
+            &SetUser(x) => Some(x),
         }
     }
 }
@@ -84,6 +89,7 @@ impl StdError for Error {
             &PipeError(_) => "error in signalling pipe",
             &WaitError(_) => "error in waiting for child",
             &StdioError(_) => "error setting up stdio for child",
+            &SetUser(_) => "error setting user or groups",
         }
     }
 }
@@ -146,6 +152,7 @@ impl ErrorCode {
             C::ParentDeathSignal => E::ParentDeathSignal(errno),
             C::PipeError => E::PipeError(errno),
             C::StdioError => E::StdioError(errno),
+            C::SetUser => E::SetUser(errno),
         }
     }
     pub fn from_i32(code: i32, errno: i32) -> Error {
@@ -160,6 +167,7 @@ impl ErrorCode {
                                                 => E::ParentDeathSignal(errno),
             c if c == C::PipeError as i32 => E::PipeError(errno),
             c if c == C::StdioError as i32 => E::StdioError(errno),
+            c if c == C::SetUser as i32 => E::SetUser(errno),
             _ => E::UnknownError,
         }
     }

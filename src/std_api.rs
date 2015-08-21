@@ -11,6 +11,7 @@ use std::collections::HashMap;
 use std::env;
 use std::path::Path;
 
+use libc::{uid_t, gid_t};
 use ffi_util::ToCString;
 use {Command, Stdio};
 
@@ -124,5 +125,25 @@ impl Command {
         self
     }
 
+    /// Set user id of the new process. Note that it works only for root
+    /// process or if you also set up user namespace
+    pub fn uid(&mut self, id: uid_t) -> &mut Command {
+        self.config.uid = Some(id);
+        self
+    }
+
+    /// Set primary group id of the new process. Note that it works only for
+    /// root process or if you also set up user namespace
+    pub fn gid(&mut self, id: gid_t) -> &mut Command {
+        self.config.gid = Some(id);
+        self
+    }
+
+    /// Set supplementary group ids. Note that it works only for root process
+    /// or if you also set up user namespace
+    pub fn groups(&mut self, ids: Vec<gid_t>) -> &mut Command {
+        self.config.supplementary_gids = Some(ids);
+        self
+    }
 }
 

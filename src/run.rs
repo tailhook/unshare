@@ -1,6 +1,7 @@
 use std::io::{Read, Write};
 use std::ptr;
-use std::path::Path;
+use std::env::current_dir;
+use std::path::{Path, PathBuf};
 use std::ffi::CString;
 use std::os::unix::io::{RawFd, AsRawFd};
 use std::os::unix::ffi::{OsStrExt};
@@ -18,6 +19,8 @@ use error::{Error, result};
 use error::ErrorCode as Err;
 use pipe::Pipe;
 use stdio::Closing;
+use chroot::{Pivot, Chroot};
+use ffi_util::ToCString;
 
 
 pub struct ChildInfo<'a> {
@@ -25,6 +28,8 @@ pub struct ChildInfo<'a> {
     pub args: &'a [*const c_char],
     pub environ: &'a [*const c_char],
     pub cfg: &'a Config,
+    pub chroot: Option<Chroot>,
+    pub pivot: Option<Pivot>,
     pub wakeup_pipe: RawFd,
     pub error_pipe: RawFd,
     pub stdin: RawFd,
@@ -39,6 +44,24 @@ fn raw_with_null(arr: &Vec<CString>) -> Vec<*const c_char> {
     }
     vec.push(ptr::null());
     return vec;
+}
+
+fn relative_to<A:AsRef<Path>, B:AsRef<Path>>(dir: A, rel: B, absolute: bool)
+    -> Option<PathBuf>
+{
+    let dir = dir.as_ref();
+    let rel = rel.as_ref();
+    let mut relcmp = rel.components();
+    for (dc, rc) in dir.components().zip(relcmp.by_ref()) {
+        if dc != rc {
+            return None;
+        }
+    }
+    if absolute {
+        Some(Path::new("/").join(relcmp.as_path()))
+    } else {
+        Some(relcmp.as_path().to_path_buf())
+    }
 }
 
 impl Command {
@@ -126,6 +149,35 @@ impl Command {
             &Some(Stdio::Fd(ref x)) => (None, None, x.as_raw_fd()),
         };
 
+        let pivot = self.pivot_root.as_ref().map(|&(ref new, ref old, unmnt)| {
+            Pivot {
+                new_root: new.to_cstring(),
+                put_old: old.to_cstring(),
+                old_inside: relative_to(old, new, true).unwrap().to_cstring(),
+                workdir: current_dir().ok()
+                    .and_then(|cur| relative_to(cur, new, true))
+                    .unwrap_or(PathBuf::from("/"))
+                    .to_cstring(),
+                unmount_old_root: unmnt,
+            }
+        });
+
+        let chroot = self.chroot_dir.as_ref().map(|dir| {
+            let wrk_rel = if let Some((ref piv, _, _)) = self.pivot_root {
+                piv.join(relative_to(dir, "/", false).unwrap())
+            } else {
+                dir.to_path_buf()
+            };
+            Chroot {
+                root: dir.to_cstring(),
+                workdir: current_dir().ok()
+                    .and_then(|cur| relative_to(cur, wrk_rel, true))
+                    .unwrap_or(PathBuf::from("/"))
+                    .to_cstring()
+,
+            }
+        });
+
         let pid = libc::fork();
         if pid < 0 {
             return Err(Error::Fork(errno()));
@@ -135,6 +187,8 @@ impl Command {
                 args: &c_args[..],
                 environ: &c_environ[..],
                 cfg: &self.config,
+                chroot: chroot,
+                pivot: pivot,
                 wakeup_pipe: wakeup.into_reader_fd(),
                 error_pipe: errpipe.into_writer_fd(),
                 stdin: inner_in,

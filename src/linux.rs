@@ -1,5 +1,5 @@
+use std::path::Path;
 use nix::sys::signal::{SigNum};
-
 
 use Command;
 
@@ -41,6 +41,76 @@ impl Command {
     ///
     pub fn set_parent_death_signal(&mut self, sig: SigNum) {
         self.config.death_sig = Some(sig);
+    }
+
+    /// Set chroot dir. Only absolute path is supported
+    ///
+    /// This method has a non-standard security feature: even if current_dir
+    /// is unspecified we set it to the directory inside the new root dir.
+    /// see more details in the description of `Command::current_dir`.
+    ///
+    /// Note that if both chroot dir and pivot_root specified. The chroot dir
+    /// is applied after pivot root. If chroot dir is relative it's relative
+    /// to either suffix of the current directory with stripped off pivot dir
+    /// or the pivot dir itself (if old workdir is not prefixed by pivot dir)
+    ///
+    /// # Panics
+    ///
+    /// If directory is not absolute
+    pub fn chroot_dir<P: AsRef<Path>>(&mut self, dir: P) -> &mut Command
+    {
+        let dir = dir.as_ref();
+        if !dir.is_absolute() {
+            panic!("Chroot dir must be absolute");
+        }
+        self.chroot_dir = Some(dir.to_path_buf());
+
+        self
+    }
+
+    /// Moves the root of the file system to the directory `put_old` and
+    /// makes `new_root` the new root file system. Also it's optionally
+    /// unmount `new_root` mount point after moving root (but it must exist
+    /// anyway).
+    ///
+    /// The documentation says that `put_old` must be underneath the
+    /// `new_root`.  Currently we have a restriction that both must be absolute
+    /// and `new_root` be prefix of `put_old`, but we may lift it later.
+    ///
+    /// Note that if you don't unshare mount namespace you will change
+    /// filesystem of the parent process and all other process of it's
+    /// namespace.
+    ///
+    /// See `man 2 pivot` for further details
+    ///
+    /// Note that if both chroot dir and pivot_root specified. The chroot dir
+    /// is applied after pivot root.
+    ///
+    /// # Panics
+    ///
+    /// Panics if either path is not absolute or new_root is not a prefix of
+    /// put_old.
+    pub fn pivot_root<A: AsRef<Path>, B:AsRef<Path>>(&mut self,
+        new_root: A, put_old: B, unmount: bool)
+        -> &mut Command
+    {
+        let new_root = new_root.as_ref();
+        let put_old = put_old.as_ref();
+        if !new_root.is_absolute() {
+            panic!("New root must be absolute");
+        };
+        if !put_old.is_absolute() {
+            panic!("The `put_old` dir must be absolute");
+        }
+        let mut old_cmp = put_old.components();
+        for (n, o) in new_root.components().zip(old_cmp.by_ref()) {
+            if n != o {
+                panic!("The new_root is not a prefix of put old");
+            }
+        }
+        self.pivot_root = Some((new_root.to_path_buf(), put_old.to_path_buf(),
+                                unmount));
+        self
     }
 
 }

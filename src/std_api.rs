@@ -33,6 +33,8 @@ impl Command {
             args: vec![program.to_cstring()],
             environ: None,
             config: Default::default(),
+            chroot_dir: None,
+            pivot_root: None,
             stdin: None,
             stdout: None,
             stderr: None,

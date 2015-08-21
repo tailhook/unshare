@@ -4,9 +4,11 @@ extern crate libc;
 
 use std::io::{stderr, Write, Read};
 use std::process::exit;
+use std::path::PathBuf;
 
 use libc::{uid_t, gid_t};
 use argparse::{ArgumentParser, Store, StoreOption, Collect, StoreTrue};
+use argparse::{ParseOption};
 
 
 fn main() {
@@ -17,6 +19,7 @@ fn main() {
     let mut escape_stdout = false;
     let mut uid = None::<uid_t>;
     let mut gid = None::<gid_t>;
+    let mut chroot = None::<PathBuf>;
     let mut groups = Vec::<gid_t>::new();
     {  // this block limits scope of borrows by ap.refer() method
         let mut ap = ArgumentParser::new();
@@ -46,6 +49,9 @@ fn main() {
         ap.refer(&mut groups)
             .add_option(&["--add-group"], Collect, "
                 Add supplementary group id");
+        ap.refer(&mut chroot)
+            .add_option(&["--chroot"], ParseOption, "
+                Chroot to directory before running command");
         ap.stop_on_first_argument(true);
         ap.parse_args_or_exit();
     }
@@ -55,6 +61,7 @@ fn main() {
     workdir.map(|dir| cmd.current_dir(dir));
     gid.map(|gid| cmd.gid(gid));
     uid.map(|uid| cmd.uid(uid));
+    chroot.map(|dir| cmd.chroot_dir(dir));
     if groups.len() > 0 { cmd.groups(groups); }
     if escape_stdout {
         cmd.stdout(unshare::Stdio::piped());

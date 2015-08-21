@@ -45,6 +45,7 @@ pub use stdio::Stdio;
 pub use pipe::{PipeReader, PipeWriter};
 
 use std::ffi::{CString, OsString};
+use std::path::PathBuf;
 use std::collections::HashMap;
 
 use libc::{pid_t};
@@ -59,6 +60,8 @@ pub struct Command {
     stdin: Option<Stdio>,
     stdout: Option<Stdio>,
     stderr: Option<Stdio>,
+    chroot_dir: Option<PathBuf>,
+    pivot_root: Option<(PathBuf, PathBuf, bool)>,
 }
 
 /// The reference to the running child

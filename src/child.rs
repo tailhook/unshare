@@ -75,6 +75,29 @@ pub unsafe fn child_after_clone(child: &ChildInfo) -> ! {
         epipe = nerr;
     }
 
+    child.pivot.as_ref().map(|piv| {
+        if ffi::pivot_root(piv.new_root.as_ptr(), piv.put_old.as_ptr()) != 0 {
+            fail(Err::ChangeRoot, epipe);
+        }
+        if libc::chdir(piv.workdir.as_ptr()) != 0 {
+            fail(Err::ChangeRoot, epipe);
+        }
+        if piv.unmount_old_root {
+            if ffi::umount2(piv.old_inside.as_ptr(), ffi::MNT_DETACH) != 0 {
+                fail(Err::ChangeRoot, epipe);
+            }
+        }
+    });
+
+    child.chroot.as_ref().map(|chroot| {
+        if ffi::chroot(chroot.root.as_ptr()) != 0 {
+            fail(Err::ChangeRoot, epipe);
+        }
+        if libc::chdir(chroot.workdir.as_ptr()) != 0 {
+            fail(Err::ChangeRoot, epipe);
+        }
+    });
+
     child.cfg.gid.as_ref().map(|&gid| {
         if libc::setgid(gid) != 0 {
             fail(Err::SetUser, epipe);
@@ -142,6 +165,7 @@ mod ffi {
 
     pub const F_DUPFD_CLOEXEC: c_int = 1030;
     pub const PR_SET_PDEATHSIG: c_int = 1;
+    pub const MNT_DETACH: c_int = 2;
 
     extern {
         pub fn execve(path: *const c_char, argv: *const *const c_char,
@@ -149,5 +173,9 @@ mod ffi {
         pub fn prctl(option: c_int, arg2: c_ulong, arg3: c_ulong,
             arg4: c_ulong, arg5: c_ulong) -> c_int;
         pub fn setgroups(size: size_t, gids: *const gid_t) -> c_int;
+        pub fn pivot_root(new_root: *const c_char, put_old: *const c_char)
+            -> c_int;
+        pub fn chroot(path: *const c_char) -> c_int;
+        pub fn umount2(target: *const c_char, flags: c_int) -> c_int;
     }
 }

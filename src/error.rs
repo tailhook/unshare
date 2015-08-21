@@ -15,6 +15,7 @@ pub enum ErrorCode {
     PipeError = 6,
     StdioError = 7,
     SetUser = 8,
+    ChangeRoot = 9,
 }
 
 #[derive(Debug, Clone)]
@@ -53,6 +54,10 @@ pub enum Error {
     /// Could not set supplementary groups, group id  or user id for the
     /// process
     SetUser(i32),
+    /// Error changing root, it explains `chroot`, `pivot_root` system calls
+    /// and setting working directory inside new root. Also includes unmounting
+    /// old file system for pivot_root case.
+    ChangeRoot(i32),
 }
 
 impl Error {
@@ -71,6 +76,7 @@ impl Error {
             &WaitError(x) => Some(x),
             &StdioError(x) => Some(x),
             &SetUser(x) => Some(x),
+            &ChangeRoot(x) => Some(x),
         }
     }
 }
@@ -90,6 +96,7 @@ impl StdError for Error {
             &WaitError(_) => "error in waiting for child",
             &StdioError(_) => "error setting up stdio for child",
             &SetUser(_) => "error setting user or groups",
+            &ChangeRoot(_) => "error changing root directory",
         }
     }
 }
@@ -153,6 +160,7 @@ impl ErrorCode {
             C::PipeError => E::PipeError(errno),
             C::StdioError => E::StdioError(errno),
             C::SetUser => E::SetUser(errno),
+            C::ChangeRoot => E::ChangeRoot(errno),
         }
     }
     pub fn from_i32(code: i32, errno: i32) -> Error {
@@ -168,6 +176,7 @@ impl ErrorCode {
             c if c == C::PipeError as i32 => E::PipeError(errno),
             c if c == C::StdioError as i32 => E::StdioError(errno),
             c if c == C::SetUser as i32 => E::SetUser(errno),
+            c if c == C::ChangeRoot as i32 => E::ChangeRoot(errno),
             _ => E::UnknownError,
         }
     }

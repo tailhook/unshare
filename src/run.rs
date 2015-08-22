@@ -11,6 +11,8 @@ use libc::c_char;
 use nix::errno::errno;
 use nix::fcntl::{open, O_CLOEXEC, O_RDONLY, O_WRONLY};
 use nix::sys::stat::Mode;
+use nix::sched::clone;
+use nix::sys::signal::signal::SIGCHLD;
 
 use child;
 use config::Config;
@@ -28,8 +30,8 @@ pub struct ChildInfo<'a> {
     pub args: &'a [*const c_char],
     pub environ: &'a [*const c_char],
     pub cfg: &'a Config,
-    pub chroot: Option<Chroot>,
-    pub pivot: Option<Pivot>,
+    pub chroot: &'a Option<Chroot>,
+    pub pivot: &'a Option<Pivot>,
     pub wakeup_pipe: RawFd,
     pub error_pipe: RawFd,
     pub stdin: RawFd,
@@ -84,8 +86,8 @@ impl Command {
 
     unsafe fn spawn_inner(&self) -> Result<Child, Error> {
         // TODO(tailhook) add RAII for pipes
-        let wakeup = try!(Pipe::new());
-        let errpipe = try!(Pipe::new());
+        let (wakeup_rd, mut wakeup) = try!(Pipe::new()).split();
+        let (mut errpipe, errpipe_wr) = try!(Pipe::new()).split();
 
         let c_args = raw_with_null(&self.args);
 
@@ -178,27 +180,25 @@ impl Command {
             }
         });
 
-        let pid = libc::fork();
-        if pid < 0 {
-            return Err(Error::Fork(errno()));
-        } else if pid == 0 {
+        let mut nstack = [0u8; 4096];
+        let mut wakeup_rd = Some(wakeup_rd);
+        let mut errpipe_wr = Some(errpipe_wr);
+        let pid = try!(result(Err::Fork, clone(Box::new(move || -> isize {
             let child_info = ChildInfo {
                 filename: self.filename.as_ptr(),
                 args: &c_args[..],
                 environ: &c_environ[..],
                 cfg: &self.config,
-                chroot: chroot,
-                pivot: pivot,
-                wakeup_pipe: wakeup.into_reader_fd(),
-                error_pipe: errpipe.into_writer_fd(),
+                chroot: &chroot,
+                pivot: &pivot,
+                wakeup_pipe: wakeup_rd.take().unwrap().into_fd(),
+                error_pipe: errpipe_wr.take().unwrap().into_fd(),
                 stdin: inner_in,
                 stdout: inner_out,
                 stderr: inner_err,
             };
             child::child_after_clone(&child_info);
-        }
-        let mut errpipe = errpipe.into_reader();
-        let mut wakeup = wakeup.into_writer();
+        }), &mut nstack[..], SIGCHLD as u32)));
 
         try!(result(Err::PipeError, wakeup.write_all(b"x")));
         let mut err = [0u8; 6];

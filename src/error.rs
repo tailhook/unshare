@@ -35,7 +35,7 @@ pub enum Error {
     /// error back to the parent.
     // TODO(tailhook) should create pipe be split into PipeError and StdioError
     CreatePipe(i32),
-    /// Error when forking process
+    /// Error when forking/cloning process
     Fork(i32),
     /// Error when running execve() systemcall
     Exec(i32),

@@ -18,6 +18,11 @@
 //!    ``allow_daemonize`` method (but look at documentation of
 //!    ``Command::set_parent_death_signal`` first).
 //!
+//! 3. We don't enable `SIGCHLD` in clone flags by default. Most of the time
+//!    you are expected to `wait()` for process yourself, and `SIGCHLD`
+//!    disposition in  `sigaction()` is ignored by default anyway. If you
+//!    monitor children with signals, use ``enable_child_signal()``
+//!
 //! Anyway this is low-level interface. You may want to use some higher level
 //! abstraction which mounts filesystems, sets network and monitors processes.
 //!
@@ -43,6 +48,7 @@ pub use error::Error;
 pub use status::ExitStatus;
 pub use stdio::Stdio;
 pub use pipe::{PipeReader, PipeWriter};
+pub use namespace::{Namespace};
 
 use std::ffi::{CString, OsString};
 use std::path::PathBuf;

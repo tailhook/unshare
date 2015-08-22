@@ -6,9 +6,10 @@ use std::io::{stderr, Write, Read};
 use std::process::exit;
 use std::path::PathBuf;
 
+use unshare::Namespace;
 use libc::{uid_t, gid_t};
 use argparse::{ArgumentParser, Store, StoreOption, Collect, StoreTrue};
-use argparse::{ParseOption};
+use argparse::{ParseOption, PushConst};
 
 
 fn main() {
@@ -20,6 +21,7 @@ fn main() {
     let mut uid = None::<uid_t>;
     let mut gid = None::<gid_t>;
     let mut chroot = None::<PathBuf>;
+    let mut namespaces = Vec::<Namespace>::new();
     let mut groups = Vec::<gid_t>::new();
     {  // this block limits scope of borrows by ap.refer() method
         let mut ap = ArgumentParser::new();
@@ -52,6 +54,19 @@ fn main() {
         ap.refer(&mut chroot)
             .add_option(&["--chroot"], ParseOption, "
                 Chroot to directory before running command");
+        ap.refer(&mut namespaces)
+            .add_option(&["--unshare-pid"], PushConst(Namespace::Pid),
+                "Unshare pid namespace")
+            .add_option(&["--unshare-net"], PushConst(Namespace::Net),
+                "Unshare net namespace")
+            .add_option(&["--unshare-mount"], PushConst(Namespace::Mount),
+                "Unshare mount namespace")
+            .add_option(&["--unshare-uts"], PushConst(Namespace::Uts),
+                "Unshare UTS namespace")
+            .add_option(&["--unshare-ipc"], PushConst(Namespace::Ipc),
+                "Unshare IPC namespace")
+            .add_option(&["--unshare-user"], PushConst(Namespace::User),
+                "Unshare user namespace");
         ap.stop_on_first_argument(true);
         ap.parse_args_or_exit();
     }
@@ -62,6 +77,7 @@ fn main() {
     gid.map(|gid| cmd.gid(gid));
     uid.map(|uid| cmd.uid(uid));
     chroot.map(|dir| cmd.chroot_dir(dir));
+    cmd.unshare(namespaces.iter().cloned());
     if groups.len() > 0 { cmd.groups(groups); }
     if escape_stdout {
         cmd.stdout(unshare::Stdio::piped());

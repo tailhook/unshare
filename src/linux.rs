@@ -1,7 +1,8 @@
 use std::path::Path;
 use nix::sys::signal::{SigNum};
+use nix::sched as consts;
 
-use Command;
+use {Command, Namespace};
 
 impl Command {
 
@@ -77,9 +78,12 @@ impl Command {
     /// `new_root`.  Currently we have a restriction that both must be absolute
     /// and `new_root` be prefix of `put_old`, but we may lift it later.
     ///
-    /// Note that if you don't unshare mount namespace you will change
-    /// filesystem of the parent process and all other process of it's
-    /// namespace.
+    /// **Warning** if you don't unshare the mount namespace you will get
+    /// moved filesystem root for *all processes running in that namespace*
+    /// including parent (currently running) process itself. If you don't
+    /// run equivalent to ``mount --make-private`` for the old root filesystem
+    /// and set ``unmount`` to true, you may get unmounted filesystem for
+    /// running processes too.
     ///
     /// See `man 2 pivot` for further details
     ///
@@ -111,6 +115,44 @@ impl Command {
         self.pivot_root = Some((new_root.to_path_buf(), put_old.to_path_buf(),
                                 unmount));
         self
+    }
+
+    /// Unshare given namespaces
+    ///
+    /// Note: each namespace have some consequences on how new process will
+    /// work, some of them are described in the `Namespace` type documentation.
+    pub fn unshare<I:IntoIterator<Item=Namespace>>(&mut self, iter: I) {
+        use Namespace::*;
+        for ns in iter {
+            self.config.namespaces |= match ns {
+                Mount => consts::CLONE_NEWNS,
+                Uts => consts::CLONE_NEWUTS,
+                Ipc => consts::CLONE_NEWIPC,
+                User => consts::CLONE_NEWUSER,
+                Pid => consts::CLONE_NEWPID,
+                Net => consts::CLONE_NEWNET,
+            };
+        }
+    }
+
+    /// Enables delivering of `SIGCHLD`
+    ///
+    /// Note the following things:
+    ///
+    /// 1. Unlike in most other implementations it's disabled by default
+    /// 2. Default disposition of `SIGCHLD` is `Ignore`, so you may need
+    ///    `sigaction` or `signalfd` to get use of it even after enabling
+    /// 3. You may get `SIGCHLD` anyway even if you never enable this option by
+    ///    the following means:
+    ///      * Processes run by other libraries
+    ///      * Children reparented to this process (*)
+    ///
+    /// (*) You may get children reparented to your process because of:
+    ///
+    /// 1. Your process has PID 1 (root of pid namespace/container/system)
+    /// 2. Your process has called `prctl(PR_SET_CHILD_SUBREAPER)`
+    pub fn enable_child_signal(&mut self) {
+        self.config.sigchld = true;
     }
 
 }

@@ -183,6 +183,8 @@ impl Command {
         let mut nstack = [0u8; 4096];
         let mut wakeup_rd = Some(wakeup_rd);
         let mut errpipe_wr = Some(errpipe_wr);
+        let flags = self.config.namespaces |
+            (if self.config.sigchld { SIGCHLD as u32 } else { 0 });
         let pid = try!(result(Err::Fork, clone(Box::new(move || -> isize {
             let child_info = ChildInfo {
                 filename: self.filename.as_ptr(),
@@ -198,7 +200,7 @@ impl Command {
                 stderr: inner_err,
             };
             child::child_after_clone(&child_info);
-        }), &mut nstack[..], SIGCHLD as u32)));
+        }), &mut nstack[..], flags)));
 
         try!(result(Err::PipeError, wakeup.write_all(b"x")));
         let mut err = [0u8; 6];

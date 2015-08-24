@@ -38,6 +38,7 @@ impl Command {
             stdin: None,
             stdout: None,
             stderr: None,
+            id_map_commands: None,
         }
     }
 

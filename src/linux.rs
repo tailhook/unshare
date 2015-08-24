@@ -3,6 +3,8 @@ use nix::sys::signal::{SigNum};
 use nix::sched as consts;
 
 use {Command, Namespace};
+use idmap::{UidMap, GidMap};
+
 
 impl Command {
 
@@ -158,6 +160,52 @@ impl Command {
     /// 2. Your process has called `prctl(PR_SET_CHILD_SUBREAPER)`
     pub fn enable_child_signal(&mut self) -> &mut Command {
         self.config.sigchld = true;
+        self
+    }
+
+    /// Sets user id and group id mappings for new process
+    ///
+    /// This automatically enables `User` namespace. You should also set `uid`
+    /// and `gid` with respective methods for the new process.
+    ///
+    /// Note there are basically two ways to enable id maps:
+    ///
+    /// 1. Write them directly
+    /// 2. Invoke a `newuidmap`, `newgidmap` commands
+    ///
+    /// First option works either if current process is root or if resulting
+    /// map only contains current user in the mapping.
+    ///
+    /// The library will not try to guess the behavior. By default it will
+    /// write directly. You need to call the `set_id_map_commands` when you
+    /// want non-default behavior.
+    ///
+    /// See `man 7 user_namespaces` for more info
+    pub fn set_id_maps(&mut self, uid_map: Vec<UidMap>, gid_map: Vec<GidMap>)
+        -> &mut Command
+    {
+        self.unshare([Namespace::User].iter().cloned());
+        self.config.id_maps = Some((uid_map, gid_map));
+        self
+    }
+
+    /// Set path to command-line utilities for writing uid/gid maps
+    ///
+    /// The utilities provided my obey same interface as `newuidmap` and
+    /// `newgidmap` from `shadow` (or sometimes `uidmap`) package. To get it
+    /// working you usually need to setup `/etc/subuid` and `/etc/subgid`
+    /// files.
+    ///
+    /// See `man 1 newuidmap`, `man 1 newgidmap` for details
+    ///
+    /// This method is no-op unless `set_id_maps` is called.
+    pub fn set_id_map_commands<A: AsRef<Path>, B: AsRef<Path>>(&mut self,
+        newuidmap: A, newgidmap: B)
+        -> &mut Command
+    {
+        self.id_map_commands = Some((
+            newuidmap.as_ref().to_path_buf(),
+            newgidmap.as_ref().to_path_buf()));
         self
     }
 

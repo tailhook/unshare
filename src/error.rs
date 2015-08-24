@@ -16,6 +16,7 @@ pub enum ErrorCode {
     StdioError = 7,
     SetUser = 8,
     ChangeRoot = 9,
+    SetIdMap = 10,
 }
 
 #[derive(Debug, Clone)]
@@ -58,6 +59,9 @@ pub enum Error {
     /// and setting working directory inside new root. Also includes unmounting
     /// old file system for pivot_root case.
     ChangeRoot(i32),
+    /// Error setting uid or gid map. May be either problem running
+    /// `newuidmap`/`newgidmap` command or writing the mapping file directly
+    SetIdMap(i32),
 }
 
 impl Error {
@@ -77,6 +81,7 @@ impl Error {
             &StdioError(x) => Some(x),
             &SetUser(x) => Some(x),
             &ChangeRoot(x) => Some(x),
+            &SetIdMap(x) => Some(x),
         }
     }
 }
@@ -97,6 +102,7 @@ impl StdError for Error {
             &StdioError(_) => "error setting up stdio for child",
             &SetUser(_) => "error setting user or groups",
             &ChangeRoot(_) => "error changing root directory",
+            &SetIdMap(_) => "error setting uid/gid mappings",
         }
     }
 }
@@ -146,6 +152,12 @@ impl IntoError for io::Error {
     }
 }
 
+impl IntoError for Error {
+    fn into_error(self, code: ErrorCode) -> Error {
+        code.wrap(self.raw_os_error().unwrap_or(-1))
+    }
+}
+
 
 impl ErrorCode {
     pub fn wrap(self, errno: i32) -> Error {
@@ -161,6 +173,7 @@ impl ErrorCode {
             C::StdioError => E::StdioError(errno),
             C::SetUser => E::SetUser(errno),
             C::ChangeRoot => E::ChangeRoot(errno),
+            C::SetIdMap => E::SetIdMap(errno),
         }
     }
     pub fn from_i32(code: i32, errno: i32) -> Error {
@@ -177,6 +190,7 @@ impl ErrorCode {
             c if c == C::StdioError as i32 => E::StdioError(errno),
             c if c == C::SetUser as i32 => E::SetUser(errno),
             c if c == C::ChangeRoot as i32 => E::ChangeRoot(errno),
+            c if c == C::SetIdMap as i32 => E::SetIdMap(errno),
             _ => E::UnknownError,
         }
     }

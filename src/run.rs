@@ -1,25 +1,27 @@
 use std::io::{Read, Write};
 use std::ptr;
+use std::fs::File;
 use std::env::current_dir;
 use std::path::{Path, PathBuf};
 use std::ffi::CString;
 use std::os::unix::io::{RawFd, AsRawFd};
 use std::os::unix::ffi::{OsStrExt};
 
-use libc;
-use libc::c_char;
-use nix::errno::errno;
+use libc::{c_char, pid_t};
+use nix;
+use nix::errno::{errno, EINTR};
 use nix::fcntl::{open, O_CLOEXEC, O_RDONLY, O_WRONLY};
 use nix::sys::stat::Mode;
 use nix::sched::clone;
-use nix::sys::signal::signal::SIGCHLD;
+use nix::sys::signal::{SIGKILL, SIGCHLD, kill};
+use nix::sys::wait::waitpid;
 
 use child;
 use config::Config;
 use {Command, Child, ExitStatus, Stdio};
 use error::{Error, result};
 use error::ErrorCode as Err;
-use pipe::Pipe;
+use pipe::{Pipe, PipeReader, PipeWriter};
 use stdio::Closing;
 use chroot::{Pivot, Chroot};
 use ffi_util::ToCString;
@@ -72,7 +74,7 @@ impl Command {
         // TODO(tailhook) stdin/stdout/stderr
         try!(self.spawn())
         .wait()
-        .map_err(|e| Error::WaitError(e.raw_os_error().unwrap_or(0)))
+        .map_err(|e| Error::WaitError(e.raw_os_error().unwrap_or(-1)))
     }
     /// Spawn the command and return a handle that can be waited for
     pub fn spawn(&mut self) -> Result<Child, Error> {
@@ -86,8 +88,8 @@ impl Command {
 
     unsafe fn spawn_inner(&self) -> Result<Child, Error> {
         // TODO(tailhook) add RAII for pipes
-        let (wakeup_rd, mut wakeup) = try!(Pipe::new()).split();
-        let (mut errpipe, errpipe_wr) = try!(Pipe::new()).split();
+        let (wakeup_rd, wakeup) = try!(Pipe::new()).split();
+        let (errpipe, errpipe_wr) = try!(Pipe::new()).split();
 
         let c_args = raw_with_null(&self.args);
 
@@ -202,6 +204,69 @@ impl Command {
             child::child_after_clone(&child_info);
         }), &mut nstack[..], flags)));
 
+        if let Err(e) = self.after_start(pid, wakeup, errpipe) {
+            kill(pid, SIGKILL).ok();
+            loop {
+                match waitpid(pid, None) {
+                    Err(nix::Error::Sys(EINTR)) => continue,
+                    _ => break,
+                }
+            }
+            return Err(e);
+        }
+
+        Ok(Child {
+            pid: pid,
+            status: None,
+            stdin: outer_in,
+            stdout: outer_out,
+            stderr: outer_err,
+        })
+    }
+
+    fn after_start(&self, pid: pid_t,
+        mut wakeup: PipeWriter, mut errpipe: PipeReader)
+        -> Result<(), Error>
+    {
+        if let Some(&(ref uids, ref gids)) = self.config.id_maps.as_ref() {
+            if let Some(&(ref ucmd, ref gcmd)) = self.id_map_commands.as_ref()
+            {
+                let mut cmd = Command::new(ucmd);
+                cmd.arg(format!("{}", pid));
+                for map in uids {
+                    cmd.arg(format!("{}", map.inside_uid));
+                    cmd.arg(format!("{}", map.outside_uid));
+                    cmd.arg(format!("{}", map.count));
+                }
+                try!(result(Err::SetIdMap, cmd.status()));
+                let mut cmd = Command::new(gcmd);
+                cmd.arg(format!("{}", pid));
+                for map in gids {
+                    cmd.arg(format!("{}", map.inside_gid));
+                    cmd.arg(format!("{}", map.outside_gid));
+                    cmd.arg(format!("{}", map.count));
+                }
+                try!(result(Err::SetIdMap, cmd.status()));
+            } else {
+                let mut buf = Vec::new();
+                for map in uids {
+                    writeln!(&mut buf, "{} {} {}",
+                        map.inside_uid, map.outside_uid, map.count).unwrap();
+                }
+                try!(result(Err::SetIdMap,
+                    File::create(format!("/proc/{}/uid_map", pid))
+                    .and_then(|mut f| f.write_all(&buf[..]))));
+                let mut buf = Vec::new();
+                for map in gids {
+                    writeln!(&mut buf, "{} {} {}",
+                        map.inside_gid, map.outside_gid, map.count).unwrap();
+                }
+                try!(result(Err::SetIdMap,
+                    File::create(format!("/proc/{}/gid_map", pid))
+                    .and_then(|mut f| f.write_all(&buf[..]))));
+            }
+        }
+
         try!(result(Err::PipeError, wakeup.write_all(b"x")));
         let mut err = [0u8; 6];
         match try!(result(Err::PipeError, errpipe.read(&mut err))) {
@@ -214,13 +279,6 @@ impl Command {
             }
             _ => { return Err(Error::UnknownError); }
         }
-
-        Ok(Child {
-            pid: pid,
-            status: None,
-            stdin: outer_in,
-            stdout: outer_out,
-            stderr: outer_err,
-        })
+        Ok(())
     }
 }

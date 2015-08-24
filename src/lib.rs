@@ -49,6 +49,7 @@ pub use status::ExitStatus;
 pub use stdio::Stdio;
 pub use pipe::{PipeReader, PipeWriter};
 pub use namespace::{Namespace};
+pub use idmap::{UidMap, GidMap};
 
 use std::ffi::{CString, OsString};
 use std::path::PathBuf;
@@ -68,6 +69,7 @@ pub struct Command {
     stderr: Option<Stdio>,
     chroot_dir: Option<PathBuf>,
     pivot_root: Option<(PathBuf, PathBuf, bool)>,
+    id_map_commands: Option<(PathBuf, PathBuf)>,
 }
 
 /// The reference to the running child

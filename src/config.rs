@@ -2,9 +2,9 @@ use std::default::Default;
 use std::ffi::CString;
 
 use nix::sys::signal::{SigNum, SIGKILL};
-use libc::{uid_t, gid_t, c_int};
+use libc::{uid_t, gid_t};
 
-use idmap::{UidMapSetter, GidMapSetter};
+use idmap::{UidMap, GidMap};
 
 
 pub struct Config {
@@ -13,8 +13,7 @@ pub struct Config {
     pub uid: Option<uid_t>,
     pub gid: Option<gid_t>,
     pub supplementary_gids: Option<Vec<gid_t>>,
-    pub uid_map: Option<UidMapSetter>,
-    pub gid_map: Option<GidMapSetter>,
+    pub id_maps: Option<(Vec<UidMap>, Vec<GidMap>)>,
     pub namespaces: u32,
     pub sigchld: bool,
     // TODO(tailhook) sigmasks
@@ -29,8 +28,7 @@ impl Default for Config {
             uid: None,
             gid: None,
             supplementary_gids: None,
-            uid_map: None,
-            gid_map: None,
+            id_maps: None,
             namespaces: 0,
             sigchld: false,
         }

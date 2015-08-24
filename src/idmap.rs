@@ -1,26 +1,16 @@
-use std::ffi::CString;
 use libc::{uid_t, gid_t};
 
 
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub struct UidMap {
-    uid: uid_t,
-    lower_uid: uid_t,
-    count: uid_t,
+    pub inside_uid: uid_t,
+    pub outside_uid: uid_t,
+    pub count: uid_t,
 }
 
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub struct GidMap {
-    gid: gid_t,
-    lower_gid: gid_t,
-    count: gid_t,
+    pub inside_gid: gid_t,
+    pub outside_gid: gid_t,
+    pub count: gid_t,
 }
-
-pub enum UidMapSetter {
-    Command(CString, Vec<UidMap>),
-    WriteWrite(Vec<UidMap>),
-}
-
-pub enum GidMapSetter {
-    Command(CString, Vec<UidMap>),
-    WriteWrite(Vec<UidMap>),
-}
-

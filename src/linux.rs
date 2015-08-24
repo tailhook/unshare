@@ -9,8 +9,9 @@ impl Command {
     /// Allow child process to daemonize. By default we run equivalent of
     /// `set_parent_death_signal(SIGKILL)`. See the `set_parent_death_signal`
     /// for better explanation.
-    pub fn allow_daemonize(&mut self) {
+    pub fn allow_daemonize(&mut self) -> &mut Command {
         self.config.death_sig = None;
+        self
     }
 
     /// Set a signal that is sent to a process when it's parent is dead.
@@ -40,8 +41,9 @@ impl Command {
     ///
     /// To reset this behavior use ``allow_daemonize()``.
     ///
-    pub fn set_parent_death_signal(&mut self, sig: SigNum) {
+    pub fn set_parent_death_signal(&mut self, sig: SigNum) -> &mut Command {
         self.config.death_sig = Some(sig);
+        self
     }
 
     /// Set chroot dir. Only absolute path is supported
@@ -121,7 +123,9 @@ impl Command {
     ///
     /// Note: each namespace have some consequences on how new process will
     /// work, some of them are described in the `Namespace` type documentation.
-    pub fn unshare<I:IntoIterator<Item=Namespace>>(&mut self, iter: I) {
+    pub fn unshare<I:IntoIterator<Item=Namespace>>(&mut self, iter: I)
+        -> &mut Command
+    {
         use Namespace::*;
         for ns in iter {
             self.config.namespaces |= match ns {
@@ -133,6 +137,7 @@ impl Command {
                 Net => consts::CLONE_NEWNET,
             };
         }
+        self
     }
 
     /// Enables delivering of `SIGCHLD`
@@ -151,8 +156,9 @@ impl Command {
     ///
     /// 1. Your process has PID 1 (root of pid namespace/container/system)
     /// 2. Your process has called `prctl(PR_SET_CHILD_SUBREAPER)`
-    pub fn enable_child_signal(&mut self) {
+    pub fn enable_child_signal(&mut self) -> &mut Command {
         self.config.sigchld = true;
+        self
     }
 
 }

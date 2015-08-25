@@ -15,6 +15,7 @@ use argparse::{ParseOption, PushConst};
 fn main() {
     let mut command = "".to_string();
     let mut args: Vec<String> = Vec::new();
+    let mut alias = None::<String>;
     let mut workdir = None::<String>;
     let mut verbose = false;
     let mut escape_stdout = false;
@@ -54,6 +55,10 @@ fn main() {
         ap.refer(&mut chroot)
             .add_option(&["--chroot"], ParseOption, "
                 Chroot to directory before running command");
+        ap.refer(&mut alias)
+            .add_option(&["--alias", "--arg0"], ParseOption, "
+                Set alias of the command
+                (passed as `argv[0]` to the program)");
         ap.refer(&mut namespaces)
             .add_option(&["--unshare-pid"], PushConst(Namespace::Pid),
                 "Unshare pid namespace")
@@ -73,6 +78,7 @@ fn main() {
 
     let mut cmd = unshare::Command::new(&command);
     cmd.args(&args[..]);
+    alias.map(|x| cmd.arg0(x));
     workdir.map(|dir| cmd.current_dir(dir));
     gid.map(|gid| cmd.gid(gid));
     uid.map(|uid| cmd.uid(uid));

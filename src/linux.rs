@@ -1,7 +1,9 @@
+use std::ffi::OsStr;
 use std::path::Path;
 use nix::sys::signal::{SigNum};
 use nix::sched as consts;
 
+use ffi_util::ToCString;
 use {Command, Namespace};
 use idmap::{UidMap, GidMap};
 
@@ -200,6 +202,17 @@ impl Command {
     /// child have been able to establish it's state.
     pub fn keep_sigmask(&mut self) -> &mut Command {
         self.config.restore_sigmask = false;
+        self
+    }
+
+    /// Set the argument zero for the process
+    ///
+    /// By default argument zero is same as path to the program to run. You
+    /// may set it to a short name of the command or to something else to
+    /// pretend there is a symlink to a program (for example to run `gzip` as
+    /// `gunzip`).
+    pub fn arg0<S: AsRef<OsStr>>(&mut self, arg: S) -> &mut Command {
+        self.args[0] = arg.to_cstring();
         self
     }
 

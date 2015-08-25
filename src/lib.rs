@@ -43,6 +43,7 @@ mod run;
 mod status;
 mod wait;
 mod stdio;
+mod debug;
 
 pub use error::Error;
 pub use status::ExitStatus;

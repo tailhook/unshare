@@ -84,7 +84,7 @@ fn main() {
     }
     if verbose {
         // TODO(tailhook) implement display/debug in Command itself
-        writeln!(&mut stderr(), "Command {} {:?}", command, args).ok();
+        writeln!(&mut stderr(), "Command {:?}", cmd).ok();
     }
     let mut child = match cmd.spawn() {
         Ok(child) => { child }

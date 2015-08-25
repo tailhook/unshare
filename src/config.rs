@@ -15,7 +15,6 @@ pub struct Config {
     pub supplementary_gids: Option<Vec<gid_t>>,
     pub id_maps: Option<(Vec<UidMap>, Vec<GidMap>)>,
     pub namespaces: u32,
-    pub sigchld: bool,
     pub restore_sigmask: bool,
     // TODO(tailhook) session leader
 }
@@ -30,7 +29,6 @@ impl Default for Config {
             supplementary_gids: None,
             id_maps: None,
             namespaces: 0,
-            sigchld: false,
             restore_sigmask: true,
         }
     }

@@ -142,27 +142,6 @@ impl Command {
         self
     }
 
-    /// Enables delivering of `SIGCHLD`
-    ///
-    /// Note the following things:
-    ///
-    /// 1. Unlike in most other implementations it's disabled by default
-    /// 2. Default disposition of `SIGCHLD` is `Ignore`, so you may need
-    ///    `sigaction` or `signalfd` to get use of it even after enabling
-    /// 3. You may get `SIGCHLD` anyway even if you never enable this option by
-    ///    the following means:
-    ///      * Processes run by other libraries
-    ///      * Children reparented to this process (*)
-    ///
-    /// (*) You may get children reparented to your process because of:
-    ///
-    /// 1. Your process has PID 1 (root of pid namespace/container/system)
-    /// 2. Your process has called `prctl(PR_SET_CHILD_SUBREAPER)`
-    pub fn enable_child_signal(&mut self) -> &mut Command {
-        self.config.sigchld = true;
-        self
-    }
-
     /// Sets user id and group id mappings for new process
     ///
     /// This automatically enables `User` namespace. You should also set `uid`

@@ -13,7 +13,7 @@ use nix::errno::{errno, EINTR};
 use nix::fcntl::{open, O_CLOEXEC, O_RDONLY, O_WRONLY};
 use nix::sys::stat::Mode;
 use nix::sched::clone;
-use nix::sys::signal::{SIGKILL, SIGCHLD, kill};
+use nix::sys::signal::{SIGKILL, kill};
 use nix::sys::wait::waitpid;
 
 use child;
@@ -185,8 +185,9 @@ impl Command {
         let mut nstack = [0u8; 4096];
         let mut wakeup_rd = Some(wakeup_rd);
         let mut errpipe_wr = Some(errpipe_wr);
-        let flags = self.config.namespaces |
-            (if self.config.sigchld { SIGCHLD as u32 } else { 0 });
+        // We don't set SIGCHLD here because we don't need it at the process
+        // start. Anyway it will be reset at `execve()`
+        let flags = self.config.namespaces;
         let pid = try!(result(Err::Fork, clone(Box::new(move || -> isize {
             let child_info = ChildInfo {
                 filename: self.filename.as_ptr(),

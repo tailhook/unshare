@@ -55,16 +55,16 @@ fn relative_to<A:AsRef<Path>, B:AsRef<Path>>(dir: A, rel: B, absolute: bool)
 {
     let dir = dir.as_ref();
     let rel = rel.as_ref();
-    let mut relcmp = rel.components();
-    for (dc, rc) in dir.components().zip(relcmp.by_ref()) {
+    let mut dircmp = dir.components();
+    for (dc, rc) in rel.components().zip(dircmp.by_ref()) {
         if dc != rc {
             return None;
         }
     }
     if absolute {
-        Some(Path::new("/").join(relcmp.as_path()))
+        Some(Path::new("/").join(dircmp.as_path()))
     } else {
-        Some(relcmp.as_path().to_path_buf())
+        Some(dircmp.as_path().to_path_buf())
     }
 }
 

@@ -1,9 +1,12 @@
 use std::os::unix::io::RawFd;
+use std::mem;
+use std::ptr;
 
 use libc;
 use nix;
 use libc::{c_void, c_ulong, size_t};
 use libc::funcs::posix88::signal::kill;
+use libc::funcs::posix01::signal::signal;
 
 use run::ChildInfo;
 use error::ErrorCode as Err;
@@ -135,6 +138,15 @@ pub unsafe fn child_after_clone(child: &ChildInfo) -> ! {
         fail(Err::StdioError, epipe);
     }
 
+    if child.cfg.restore_sigmask {
+        let mut sigmask: ffi::sigset_t = mem::uninitialized();
+        ffi::sigemptyset(&mut sigmask);
+        ffi::pthread_sigmask(ffi::SIG_SETMASK, &sigmask, ptr::null_mut());
+        for sig in 1..32 {
+            signal(sig, ffi::SIG_DFL);
+        }
+    }
+
     ffi::execve(child.filename,
                 child.args.as_ptr(),
                 child.environ[..].as_ptr());
@@ -161,11 +173,25 @@ unsafe fn fail(code: Err, output: RawFd) -> ! {
 /// We don't use functions from nix here because they may allocate memory
 /// which we can't to this this module.
 mod ffi {
-    use libc::{c_char, c_int, c_ulong, size_t, gid_t};
+    use libc::{c_char, c_int, c_ulong, size_t, gid_t, sighandler_t};
 
     pub const F_DUPFD_CLOEXEC: c_int = 1030;
     pub const PR_SET_PDEATHSIG: c_int = 1;
     pub const MNT_DETACH: c_int = 2;
+    pub const SIG_SETMASK: c_int = 2;
+    pub const SIG_DFL: sighandler_t = 0 as sighandler_t;
+
+    #[cfg(all(target_os = "linux", target_pointer_width = "32"))]
+    #[repr(C)]
+    pub struct sigset_t {
+        __val: [c_ulong; 32],
+    }
+
+    #[cfg(all(target_os = "linux", target_pointer_width = "64"))]
+    #[repr(C)]
+    pub struct sigset_t {
+        __val: [c_ulong; 16],
+    }
 
     extern {
         pub fn execve(path: *const c_char, argv: *const *const c_char,
@@ -177,5 +203,10 @@ mod ffi {
             -> c_int;
         pub fn chroot(path: *const c_char) -> c_int;
         pub fn umount2(target: *const c_char, flags: c_int) -> c_int;
+
+        pub fn sigemptyset(set: *mut sigset_t) -> c_int;
+        pub fn pthread_sigmask(how: c_int, set: *const sigset_t,
+                               oldset: *mut sigset_t) -> c_int;
+
     }
 }

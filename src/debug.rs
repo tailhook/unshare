@@ -45,7 +45,7 @@ impl Debug for Command {
         if let Some(ref gids) = self.config.supplementary_gids {
             try!(write!(fmt, "; gids={:?}", gids));
         }
-        // TODO(tailhook) stdio, sigchld, death_sig, id-map-commands
+        // TODO(tailhook) stdio, sigchld, death_sig, sigmask, id-map-commands
         write!(fmt, ">")
     }
 }

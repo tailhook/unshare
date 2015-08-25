@@ -209,4 +209,19 @@ impl Command {
         self
     }
 
+    /// Keep signal mask intact after executing child, keeps also ignored
+    /// signals
+    ///
+    /// By default signal mask is empty and all signals are reset to the
+    /// `SIG_DFL` value right before `execve()` syscall.
+    ///
+    /// This is only useful if started process is aware of the issue and sets
+    /// sigmasks to some reasonable value. When used wisely it may avoid some
+    /// race conditions when signal is sent after child is cloned but before
+    /// child have been able to establish it's state.
+    pub fn keep_sigmask(&mut self) -> &mut Command {
+        self.config.restore_sigmask = false;
+        self
+    }
+
 }

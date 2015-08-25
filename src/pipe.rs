@@ -24,39 +24,10 @@ impl Pipe {
         let (rd, wr) = try!(result(CreatePipe, pipe2(O_CLOEXEC)));
         Ok(Pipe(rd, wr))
     }
-    pub fn into_reader(self) -> PipeReader {
-        let Pipe(rd, wr) = self;
-        mem::forget(self);
-        unsafe { libc::close(wr) };
-        return PipeReader(rd);
-    }
-    pub fn into_writer(self) -> PipeWriter {
-        let Pipe(rd, wr) = self;
-        mem::forget(self);
-        unsafe { libc::close(rd) };
-        return PipeWriter(wr);
-    }
     pub fn split(self) -> (PipeReader, PipeWriter) {
         let Pipe(rd, wr) = self;
         mem::forget(self);
         (PipeReader(rd), PipeWriter(wr))
-    }
-}
-
-// These methos are used in child context, so no memory allocations and any
-// other complex things are allowed
-impl Pipe {
-    pub unsafe fn into_reader_fd(self) -> i32 {
-        let Pipe(rd, wr) = self;
-        mem::forget(self);
-        libc::close(wr);
-        return rd;
-    }
-    pub unsafe fn into_writer_fd(self) -> i32 {
-        let Pipe(rd, wr) = self;
-        mem::forget(self);
-        libc::close(rd);
-        return wr;
     }
 }
 

@@ -1,4 +1,3 @@
-use std::mem;
 use std::os::unix::io::{RawFd, FromRawFd, AsRawFd};
 
 use libc;
@@ -22,11 +21,6 @@ impl Stdio {
 impl Closing {
     pub fn new(fd: RawFd) -> Closing {
         Closing(fd)
-    }
-    pub fn into_fd(self) -> RawFd {
-        let fd = self.0;
-        mem::forget(self);
-        return fd;
     }
 }
 

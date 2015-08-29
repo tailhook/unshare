@@ -56,7 +56,8 @@ impl Child {
         }
     }
 
-    pub fn signal(&mut self, signal: SigNum) -> Result<(), io::Error> {
+    /// Send arbitrary unix signal to the process
+    pub fn signal(&self, signal: SigNum) -> Result<(), io::Error> {
         // This prevents (somewhat not-reliable) killing some other process
         // with same pid
         if self.status.is_some() {
@@ -72,7 +73,8 @@ impl Child {
         })
     }
 
-    pub fn kill(&mut self) -> Result<(), io::Error> {
+    /// Kill process with SIGKILL signal
+    pub fn kill(&self) -> Result<(), io::Error> {
         self.signal(SIGKILL)
     }
 }

@@ -2,17 +2,21 @@ use std::io;
 use nix::Error;
 use nix::sys::wait::waitpid;
 use nix::errno::EINTR;
+use libc::pid_t;
 
 use {Child, ExitStatus};
 
 
 impl Child {
 
-    /// Returns pid of the process.
-    ///
-    /// TODO: Should it return pid_t instead of u32? In nightly it returns u32.
+    /// Returns pid of the process (a mirror of std method)
     pub fn id(&self) -> u32 {
         self.pid as u32
+    }
+
+    /// Returns pid of process with correct pid_t type
+    pub fn pid(&self) -> i32 {
+        self.pid
     }
 
     /// Synchronously wait for child to complete and return exit status

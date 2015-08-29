@@ -1,7 +1,7 @@
 [package]
 name = "unshare"
 description = """
-    The low-level inteface for linux namespaces (containers). Work in progress.
+    The low-level interface for linux namespaces (containers). Work in progress.
 """
 license = "MIT"
 readme = "README.rst"

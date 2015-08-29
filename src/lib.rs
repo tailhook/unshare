@@ -39,6 +39,7 @@ mod status;
 mod wait;
 mod stdio;
 mod debug;
+mod zombies;
 
 pub use error::Error;
 pub use status::ExitStatus;
@@ -46,6 +47,7 @@ pub use stdio::Stdio;
 pub use pipe::{PipeReader, PipeWriter};
 pub use namespace::{Namespace};
 pub use idmap::{UidMap, GidMap};
+pub use zombies::reap_zombies;
 
 use std::ffi::{CString, OsString};
 use std::path::PathBuf;

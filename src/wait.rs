@@ -1,6 +1,8 @@
 use std::io;
+
 use nix::Error;
 use nix::sys::wait::waitpid;
+use nix::sys::signal::{SigNum, SIGKILL, kill};
 use nix::errno::EINTR;
 use libc::pid_t;
 
@@ -15,7 +17,7 @@ impl Child {
     }
 
     /// Returns pid of process with correct pid_t type
-    pub fn pid(&self) -> i32 {
+    pub fn pid(&self) -> pid_t {
         self.pid
     }
 
@@ -52,5 +54,25 @@ impl Child {
                 }
             }
         }
+    }
+
+    pub fn signal(&mut self, signal: SigNum) -> Result<(), io::Error> {
+        // This prevents (somewhat not-reliable) killing some other process
+        // with same pid
+        if self.status.is_some() {
+            return Err(io::Error::new(
+                io::ErrorKind::InvalidInput,
+                "invalid argument: can't kill an exited process",
+            ))
+        }
+        kill(self.pid, signal)
+        .map_err(|e| match e {
+            Error::Sys(x) => io::Error::from_raw_os_error(x as i32),
+            Error::InvalidPath => unreachable!(),
+        })
+    }
+
+    pub fn kill(&mut self) -> Result<(), io::Error> {
+        self.signal(SIGKILL)
     }
 }

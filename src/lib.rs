@@ -4,7 +4,8 @@
 //! In addition `Command` contains methods to configure linux namespaces,
 //! chroots and more linux stuff.
 //!
-//! We have diverged from ``std::process::Command`` in the following things:
+//! We have diverged from ``std::process::Command`` in the following
+//! major things:
 //!
 //! 1. Error handling. Since sometimes we have long chains of system calls
 //!    involved, we need to give user some way to find out which call failed
@@ -17,6 +18,10 @@
 //!    want to allow child process to daemonize explicitly call the
 //!    ``allow_daemonize`` method (but look at documentation of
 //!    ``Command::set_parent_death_signal`` first).
+//!
+//! 3. We don't search for `program` in `PATH`. It's hard to do right in all
+//!    cases of `chroot`, `pivot_root`, user and mount namespaces. So we expect
+//!    its easier to do for your specific container setup.
 //!
 //! Anyway this is low-level interface. You may want to use some higher level
 //! abstraction which mounts filesystems, sets network and monitors processes.

@@ -1,7 +1,6 @@
 use std::ffi::OsStr;
 use std::path::Path;
 use nix::sys::signal::{SigNum};
-use nix::sched as consts;
 
 use ffi_util::ToCString;
 use {Command, Namespace};
@@ -130,16 +129,8 @@ impl Command {
     pub fn unshare<I:IntoIterator<Item=Namespace>>(&mut self, iter: I)
         -> &mut Command
     {
-        use Namespace::*;
         for ns in iter {
-            self.config.namespaces |= match ns {
-                Mount => consts::CLONE_NEWNS,
-                Uts => consts::CLONE_NEWUTS,
-                Ipc => consts::CLONE_NEWIPC,
-                User => consts::CLONE_NEWUSER,
-                Pid => consts::CLONE_NEWPID,
-                Net => consts::CLONE_NEWNET,
-            };
+            self.config.namespaces |= ns.to_clone_flag();
         }
         self
     }

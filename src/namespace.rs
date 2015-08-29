@@ -1,3 +1,6 @@
+use nix::sched as consts;
+
+
 /// Namespace name to unshare
 ///
 /// See `man 7 namespaces` for more information
@@ -57,4 +60,17 @@ pub enum Namespace {
     /// NSCD. You may isolate unix sockets by using any kind of filesystem
     /// isolation.
     Net,
+}
+
+impl Namespace {
+    pub fn to_clone_flag(&self) -> u32 {
+        match *self {
+            Namespace::Mount => consts::CLONE_NEWNS,
+            Namespace::Uts => consts::CLONE_NEWUTS,
+            Namespace::Ipc => consts::CLONE_NEWIPC,
+            Namespace::User => consts::CLONE_NEWUSER,
+            Namespace::Pid => consts::CLONE_NEWPID,
+            Namespace::Net => consts::CLONE_NEWNET,
+        }
+    }
 }

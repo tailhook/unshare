@@ -2,7 +2,7 @@
 Rust Unshare
 ============
 
-:Status: pre-alpha
+:Status: beta
 :Documentation: http://tailhook.github.io/unshare/
 
 

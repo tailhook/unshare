@@ -1,19 +1,19 @@
 [package]
 name = "unshare"
 description = """
-    The low-level interface for linux namespaces (containers). Work in progress.
+    The low-level interface for linux namespaces (containers)
 """
 license = "MIT"
 readme = "README.rst"
 keywords = ["linux", "container", "namespace", "docker", "process"]
 homepage = "http://github.com/tailhook/unshare"
 documentation = "http://tailhook.github.io/unshare/"
-version = "0.0.1"
+version = "0.1.0"
 authors = ["paul@colomiets.name"]
 
 [dependencies]
-libc = "*"
-nix = { git = "git://github.com/carllerche/nix-rust" }
+libc = "0.1.10"
+nix = "0.4.0"
 
 [dev-dependencies]
 argparse = "*"

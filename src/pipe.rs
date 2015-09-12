@@ -18,6 +18,12 @@ pub struct PipeReader(RawFd);
 #[derive(Debug)]
 pub struct PipeWriter(RawFd);
 
+#[derive(Debug)]
+pub enum PipeHolder {
+    Reader(PipeReader),
+    Writer(PipeWriter),
+}
+
 
 impl Pipe {
     pub fn new() -> Result<Pipe, Error> {

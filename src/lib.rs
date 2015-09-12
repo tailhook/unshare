@@ -48,7 +48,7 @@ mod zombies;
 
 pub use error::Error;
 pub use status::ExitStatus;
-pub use stdio::Stdio;
+pub use stdio::{Stdio, Fd};
 pub use pipe::{PipeReader, PipeWriter};
 pub use namespace::{Namespace};
 pub use idmap::{UidMap, GidMap};
@@ -56,7 +56,10 @@ pub use zombies::reap_zombies;
 
 use std::ffi::{CString, OsString};
 use std::path::PathBuf;
+use std::os::unix::io::RawFd;
 use std::collections::HashMap;
+
+use pipe::PipeHolder;
 
 use libc::{pid_t};
 
@@ -67,9 +70,7 @@ pub struct Command {
     args: Vec<CString>,
     environ: Option<HashMap<OsString, OsString>>,
     config: config::Config,
-    stdin: Option<Stdio>,
-    stdout: Option<Stdio>,
-    stderr: Option<Stdio>,
+    fds: HashMap<RawFd, Fd>,
     chroot_dir: Option<PathBuf>,
     pivot_root: Option<(PathBuf, PathBuf, bool)>,
     id_map_commands: Option<(PathBuf, PathBuf)>,
@@ -80,6 +81,7 @@ pub struct Command {
 pub struct Child {
     pid: pid_t,
     status: Option<ExitStatus>,
+    fds: HashMap<RawFd, PipeHolder>,
     pub stdin: Option<PipeWriter>,
     pub stdout: Option<PipeReader>,
     pub stderr: Option<PipeReader>,

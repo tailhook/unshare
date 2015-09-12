@@ -126,16 +126,10 @@ pub unsafe fn child_after_clone(child: &ChildInfo) -> ! {
     });
 
 
-    if child.stdin != 0 && libc::dup2(child.stdin, 0) < 0 {
-        fail(Err::StdioError, epipe);
-    }
-
-    if child.stdout != 1 && libc::dup2(child.stdout, 1) < 0 {
-        fail(Err::StdioError, epipe);
-    }
-
-    if child.stderr != 2 && libc::dup2(child.stderr, 2) < 0 {
-        fail(Err::StdioError, epipe);
+    for (&dest_fd, &src_fd) in child.fds.iter() {
+        if src_fd != dest_fd && libc::dup2(src_fd, dest_fd) < 0 {
+            fail(Err::StdioError, epipe);
+        }
     }
 
     if child.cfg.restore_sigmask {

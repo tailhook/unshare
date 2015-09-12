@@ -35,9 +35,7 @@ impl Command {
             config: Default::default(),
             chroot_dir: None,
             pivot_root: None,
-            stdin: None,
-            stdout: None,
-            stderr: None,
+            fds: HashMap::new(),
             id_map_commands: None,
         }
     }
@@ -112,19 +110,19 @@ impl Command {
 
     /// Configuration for the child process's stdin handle (file descriptor 0).
     pub fn stdin(&mut self, cfg: Stdio) -> &mut Command {
-        self.stdin = Some(cfg);
+        self.fds.insert(0, cfg.to_fd(false));
         self
     }
 
     /// Configuration for the child process's stdout handle (file descriptor 1).
     pub fn stdout(&mut self, cfg: Stdio) -> &mut Command {
-        self.stdout = Some(cfg);
+        self.fds.insert(1, cfg.to_fd(true));
         self
     }
 
     /// Configuration for the child process's stderr handle (file descriptor 2).
     pub fn stderr(&mut self, cfg: Stdio) -> &mut Command {
-        self.stderr = Some(cfg);
+        self.fds.insert(2, cfg.to_fd(true));
         self
     }
 

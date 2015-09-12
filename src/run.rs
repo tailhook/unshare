@@ -6,6 +6,7 @@ use std::path::{Path, PathBuf};
 use std::ffi::CString;
 use std::os::unix::io::{RawFd, AsRawFd};
 use std::os::unix::ffi::{OsStrExt};
+use std::collections::HashMap;
 
 use libc::{c_char, pid_t};
 use nix;
@@ -18,11 +19,11 @@ use nix::sys::wait::waitpid;
 
 use child;
 use config::Config;
-use {Command, Child, ExitStatus, Stdio};
+use {Command, Child, ExitStatus};
 use error::{Error, result};
 use error::ErrorCode as Err;
-use pipe::{Pipe, PipeReader, PipeWriter};
-use stdio::Closing;
+use pipe::{Pipe, PipeReader, PipeWriter, PipeHolder};
+use stdio::{Fd, Closing};
 use chroot::{Pivot, Chroot};
 use ffi_util::ToCString;
 
@@ -36,9 +37,7 @@ pub struct ChildInfo<'a> {
     pub pivot: &'a Option<Pivot>,
     pub wakeup_pipe: RawFd,
     pub error_pipe: RawFd,
-    pub stdin: RawFd,
-    pub stdout: RawFd,
-    pub stderr: RawFd,
+    pub fds: &'a HashMap<RawFd, RawFd>,
 }
 
 fn raw_with_null(arr: &Vec<CString>) -> Vec<*const c_char> {
@@ -102,56 +101,49 @@ impl Command {
             }).collect();
         let c_environ: Vec<_> = raw_with_null(&environ);
 
-        let (outer_in, _guard_in, inner_in) = match &self.stdin {
-            &Some(Stdio::Pipe) => {
-                let (rd, wr) = try!(Pipe::new()).split();
-                let fd = rd.into_fd();
-                (Some(wr), Some(Closing::new(fd)), fd)
-            }
-            &Some(Stdio::Null) => {
-                // Need to keep fd with cloexec, until we are in child
-                let fd = try!(result(Err::CreatePipe,
-                    open(Path::new("/dev/null"), O_CLOEXEC|O_RDONLY,
-                         Mode::empty())));
-                (None, Some(Closing::new(fd)), fd)
-            }
-            &None | &Some(Stdio::Inherit) => (None, None, 0),
-            &Some(Stdio::Fd(ref x)) => (None, None, x.as_raw_fd()),
-        };
-
-        let (outer_out, _guard_out, inner_out) = match &self.stdout {
-            &Some(Stdio::Pipe) => {
-                let (rd, wr) = try!(Pipe::new()).split();
-                let fd = wr.into_fd();
-                (Some(rd), Some(Closing::new(fd)), fd)
-            }
-            &Some(Stdio::Null) => {
-                // Need to keep fd with cloexec, until we are in child
-                let fd = try!(result(Err::CreatePipe,
-                    open(Path::new("/dev/null"), O_CLOEXEC|O_WRONLY,
-                         Mode::empty())));
-                (None, Some(Closing::new(fd)), fd)
-            }
-            &None | &Some(Stdio::Inherit) => (None, None, 1),
-            &Some(Stdio::Fd(ref x)) => (None, None, x.as_raw_fd()),
-        };
-
-        let (outer_err, _guard_err, inner_err) = match &self.stderr {
-            &Some(Stdio::Pipe) => {
-                let (rd, wr) = try!(Pipe::new()).split();
-                let fd = wr.into_fd();
-                (Some(rd), Some(Closing::new(fd)), fd)
-            }
-            &Some(Stdio::Null) => {
-                // Need to keep fd with cloexec, until we are in child
-                let fd = try!(result(Err::CreatePipe,
-                    open(Path::new("/dev/null"), O_CLOEXEC|O_WRONLY,
-                         Mode::empty())));
-                (None, Some(Closing::new(fd)), fd)
-            }
-            &None | &Some(Stdio::Inherit) => (None, None, 2),
-            &Some(Stdio::Fd(ref x)) => (None, None, x.as_raw_fd()),
-        };
+        let mut inner = HashMap::new();
+        let mut outer = HashMap::new();
+        let mut guards = Vec::new();
+        for (&dest_fd, fdkind) in self.fds.iter() {
+            match fdkind {
+                &Fd::ReadPipe => {
+                    let (rd, wr) = try!(Pipe::new()).split();
+                    let fd = rd.into_fd();
+                    guards.push(Closing::new(fd));
+                    outer.insert(dest_fd, PipeHolder::Writer(wr));
+                    inner.insert(dest_fd, fd);
+                }
+                &Fd::WritePipe => {
+                    let (rd, wr) = try!(Pipe::new()).split();
+                    let fd = wr.into_fd();
+                    guards.push(Closing::new(fd));
+                    outer.insert(dest_fd, PipeHolder::Reader(rd));
+                    inner.insert(dest_fd, fd);
+                }
+                &Fd::ReadNull => {
+                    // Need to keep fd with cloexec, until we are in child
+                    let fd = try!(result(Err::CreatePipe,
+                        open(Path::new("/dev/null"), O_CLOEXEC|O_RDONLY,
+                             Mode::empty())));
+                    guards.push(Closing::new(fd));
+                    inner.insert(dest_fd, fd);
+                }
+                &Fd::WriteNull => {
+                    // Need to keep fd with cloexec, until we are in child
+                    let fd = try!(result(Err::CreatePipe,
+                        open(Path::new("/dev/null"), O_CLOEXEC|O_WRONLY,
+                             Mode::empty())));
+                    guards.push(Closing::new(fd));
+                    inner.insert(dest_fd, fd);
+                }
+                &Fd::Inherit => {
+                    inner.insert(dest_fd, dest_fd);
+                }
+                &Fd::Fd(ref x) => {
+                    inner.insert(dest_fd, x.as_raw_fd());
+                }
+            };
+        }
 
         let pivot = self.pivot_root.as_ref().map(|&(ref new, ref old, unmnt)| {
             Pivot {
@@ -198,9 +190,7 @@ impl Command {
                 pivot: &pivot,
                 wakeup_pipe: wakeup_rd.take().unwrap().into_fd(),
                 error_pipe: errpipe_wr.take().unwrap().into_fd(),
-                stdin: inner_in,
-                stdout: inner_out,
-                stderr: inner_err,
+                fds: &inner,
             };
             child::child_after_clone(&child_info);
         }), &mut nstack[..], flags)));
@@ -219,9 +209,22 @@ impl Command {
         Ok(Child {
             pid: pid,
             status: None,
-            stdin: outer_in,
-            stdout: outer_out,
-            stderr: outer_err,
+            stdin: outer.remove(&0).map(|x| {
+                match x {
+                    PipeHolder::Writer(x) => x,
+                    _ => unreachable!(),
+                }}),
+            stdout: outer.remove(&1).map(|x| {
+                match x {
+                    PipeHolder::Reader(x) => x,
+                    _ => unreachable!(),
+                }}),
+            stderr: outer.remove(&2).map(|x| {
+                match x {
+                    PipeHolder::Reader(x) => x,
+                    _ => unreachable!(),
+                }}),
+            fds: outer,
         })
     }
 

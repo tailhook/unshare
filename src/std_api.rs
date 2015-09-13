@@ -13,7 +13,7 @@ use std::path::Path;
 
 use libc::{uid_t, gid_t};
 use ffi_util::ToCString;
-use {Command, Stdio};
+use {Command, Stdio, Fd};
 
 
 impl Command {
@@ -35,7 +35,11 @@ impl Command {
             config: Default::default(),
             chroot_dir: None,
             pivot_root: None,
-            fds: HashMap::new(),
+            fds: vec![
+                (0, Fd::inherit()),
+                (1, Fd::inherit()),
+                (2, Fd::inherit()),
+                ].into_iter().collect(),
             id_map_commands: None,
         }
     }

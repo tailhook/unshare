@@ -16,6 +16,7 @@ use nix::sys::stat::Mode;
 use nix::sched::clone;
 use nix::sys::signal::{SIGKILL, kill};
 use nix::sys::wait::waitpid;
+use nix::fcntl::{fcntl, FcntlArg};
 
 use child;
 use config::Config;
@@ -67,6 +68,64 @@ fn relative_to<A:AsRef<Path>, B:AsRef<Path>>(dir: A, rel: B, absolute: bool)
     }
 }
 
+fn prepare_descriptors(fds: &HashMap<RawFd, Fd>)
+    -> Result<(HashMap<RawFd, RawFd>, HashMap<RawFd, PipeHolder>,
+               Vec<Closing>), Error>
+{
+    let mut inner = HashMap::new();
+    let mut outer = HashMap::new();
+    let mut guards = Vec::new();
+    for (&dest_fd, fdkind) in fds.iter() {
+        let mut fd = match fdkind {
+            &Fd::ReadPipe => {
+                let (rd, wr) = try!(Pipe::new()).split();
+                let fd = rd.into_fd();
+                guards.push(Closing::new(fd));
+                outer.insert(dest_fd, PipeHolder::Writer(wr));
+                fd
+            }
+            &Fd::WritePipe => {
+                let (rd, wr) = try!(Pipe::new()).split();
+                let fd = wr.into_fd();
+                guards.push(Closing::new(fd));
+                outer.insert(dest_fd, PipeHolder::Reader(rd));
+                fd
+            }
+            &Fd::ReadNull => {
+                // Need to keep fd with cloexec, until we are in child
+                let fd = try!(result(Err::CreatePipe,
+                    open(Path::new("/dev/null"), O_CLOEXEC|O_RDONLY,
+                         Mode::empty())));
+                guards.push(Closing::new(fd));
+                fd
+            }
+            &Fd::WriteNull => {
+                // Need to keep fd with cloexec, until we are in child
+                let fd = try!(result(Err::CreatePipe,
+                    open(Path::new("/dev/null"), O_CLOEXEC|O_WRONLY,
+                         Mode::empty())));
+                guards.push(Closing::new(fd));
+                fd
+            }
+            &Fd::Inherit => {
+                dest_fd
+            }
+            &Fd::Fd(ref x) => {
+                x.as_raw_fd()
+            }
+        };
+        // The descriptor must not clobber the descriptors that are passed to
+        // a child
+        while fd != dest_fd && fds.contains_key(&fd) {
+            fd = try!(result(Err::CreatePipe,
+                fcntl(fd, FcntlArg::F_DUPFD_CLOEXEC(3))));
+            guards.push(Closing::new(fd));
+        }
+        inner.insert(dest_fd, fd);
+    }
+    Ok((inner, outer, guards))
+}
+
 impl Command {
     /// Run the command and return exit status
     pub fn status(&mut self) -> Result<ExitStatus, Error> {
@@ -101,49 +160,7 @@ impl Command {
             }).collect();
         let c_environ: Vec<_> = raw_with_null(&environ);
 
-        let mut inner = HashMap::new();
-        let mut outer = HashMap::new();
-        let mut guards = Vec::new();
-        for (&dest_fd, fdkind) in self.fds.iter() {
-            match fdkind {
-                &Fd::ReadPipe => {
-                    let (rd, wr) = try!(Pipe::new()).split();
-                    let fd = rd.into_fd();
-                    guards.push(Closing::new(fd));
-                    outer.insert(dest_fd, PipeHolder::Writer(wr));
-                    inner.insert(dest_fd, fd);
-                }
-                &Fd::WritePipe => {
-                    let (rd, wr) = try!(Pipe::new()).split();
-                    let fd = wr.into_fd();
-                    guards.push(Closing::new(fd));
-                    outer.insert(dest_fd, PipeHolder::Reader(rd));
-                    inner.insert(dest_fd, fd);
-                }
-                &Fd::ReadNull => {
-                    // Need to keep fd with cloexec, until we are in child
-                    let fd = try!(result(Err::CreatePipe,
-                        open(Path::new("/dev/null"), O_CLOEXEC|O_RDONLY,
-                             Mode::empty())));
-                    guards.push(Closing::new(fd));
-                    inner.insert(dest_fd, fd);
-                }
-                &Fd::WriteNull => {
-                    // Need to keep fd with cloexec, until we are in child
-                    let fd = try!(result(Err::CreatePipe,
-                        open(Path::new("/dev/null"), O_CLOEXEC|O_WRONLY,
-                             Mode::empty())));
-                    guards.push(Closing::new(fd));
-                    inner.insert(dest_fd, fd);
-                }
-                &Fd::Inherit => {
-                    inner.insert(dest_fd, dest_fd);
-                }
-                &Fd::Fd(ref x) => {
-                    inner.insert(dest_fd, x.as_raw_fd());
-                }
-            };
-        }
+        let (int_fds, ext_fds, _guards) = try!(prepare_descriptors(&self.fds));
 
         let pivot = self.pivot_root.as_ref().map(|&(ref new, ref old, unmnt)| {
             Pivot {
@@ -181,6 +198,7 @@ impl Command {
         // start. Anyway it will be reset at `execve()`
         let flags = self.config.namespaces;
         let pid = try!(result(Err::Fork, clone(Box::new(move || -> isize {
+            // Note: mo memory allocations/deallocations here
             let child_info = ChildInfo {
                 filename: self.filename.as_ptr(),
                 args: &c_args[..],
@@ -190,7 +208,7 @@ impl Command {
                 pivot: &pivot,
                 wakeup_pipe: wakeup_rd.take().unwrap().into_fd(),
                 error_pipe: errpipe_wr.take().unwrap().into_fd(),
-                fds: &inner,
+                fds: &int_fds,
             };
             child::child_after_clone(&child_info);
         }), &mut nstack[..], flags)));
@@ -206,25 +224,26 @@ impl Command {
             return Err(e);
         }
 
+        let mut outer_fds = ext_fds;
         Ok(Child {
             pid: pid,
             status: None,
-            stdin: outer.remove(&0).map(|x| {
+            stdin: outer_fds.remove(&0).map(|x| {
                 match x {
                     PipeHolder::Writer(x) => x,
                     _ => unreachable!(),
                 }}),
-            stdout: outer.remove(&1).map(|x| {
+            stdout: outer_fds.remove(&1).map(|x| {
                 match x {
                     PipeHolder::Reader(x) => x,
                     _ => unreachable!(),
                 }}),
-            stderr: outer.remove(&2).map(|x| {
+            stderr: outer_fds.remove(&2).map(|x| {
                 match x {
                     PipeHolder::Reader(x) => x,
                     _ => unreachable!(),
                 }}),
-            fds: outer,
+            fds: outer_fds,
         })
     }
 

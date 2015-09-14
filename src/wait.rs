@@ -1,4 +1,5 @@
 use std::io;
+use std::os::unix::io::RawFd;
 
 use nix::Error;
 use nix::sys::wait::waitpid;
@@ -6,7 +7,8 @@ use nix::sys::signal::{SigNum, SIGKILL, kill};
 use nix::errno::EINTR;
 use libc::pid_t;
 
-use {Child, ExitStatus};
+use pipe::PipeHolder;
+use {Child, ExitStatus, PipeReader, PipeWriter};
 
 
 impl Child {
@@ -76,5 +78,27 @@ impl Child {
     /// Kill process with SIGKILL signal
     pub fn kill(&self) -> Result<(), io::Error> {
         self.signal(SIGKILL)
+    }
+
+    /// Returns pipe reader for a pipe declared with `file_descriptor()`
+    ///
+    /// Returns None for wrong configuration or when called twice for same
+    /// descriptor
+    pub fn take_pipe_reader(&mut self, fd: RawFd) -> Option<PipeReader> {
+        match self.fds.remove(&fd) {
+            Some(PipeHolder::Reader(x)) => Some(x),
+            _ => None,
+        }
+    }
+
+    /// Returns pipe writer for a pipe declared with `file_descriptor()`
+    ///
+    /// Returns None for wrong configuration or when called twice for same
+    /// descriptor
+    pub fn take_pipe_writer(&mut self, fd: RawFd) -> Option<PipeWriter> {
+        match self.fds.remove(&fd) {
+            Some(PipeHolder::Writer(x)) => Some(x),
+            _ => None,
+        }
     }
 }

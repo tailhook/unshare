@@ -7,6 +7,7 @@ use nix;
 use libc::{c_void, c_ulong, size_t};
 use libc::funcs::posix88::signal::kill;
 use libc::funcs::posix01::signal::signal;
+use libc::consts::os::posix01::{F_GETFD, F_SETFD};
 
 use run::ChildInfo;
 use error::ErrorCode as Err;
@@ -127,8 +128,17 @@ pub unsafe fn child_after_clone(child: &ChildInfo) -> ! {
 
 
     for (&dest_fd, &src_fd) in child.fds.iter() {
-        if src_fd != dest_fd && libc::dup2(src_fd, dest_fd) < 0 {
-            fail(Err::StdioError, epipe);
+        if src_fd == dest_fd {
+            let flags = libc::fcntl(src_fd, F_GETFD);
+            if flags < 0 ||
+                libc::fcntl(src_fd, F_SETFD, flags & !ffi::FD_CLOEXEC) < 0
+            {
+                fail(Err::StdioError, epipe);
+            }
+        } else {
+            if libc::dup2(src_fd, dest_fd) < 0 {
+                fail(Err::StdioError, epipe);
+            }
         }
     }
 
@@ -169,6 +179,7 @@ unsafe fn fail(code: Err, output: RawFd) -> ! {
 mod ffi {
     use libc::{c_char, c_int, c_ulong, size_t, gid_t, sighandler_t};
 
+    pub const FD_CLOEXEC: c_int = 1;
     pub const F_DUPFD_CLOEXEC: c_int = 1030;
     pub const PR_SET_PDEATHSIG: c_int = 1;
     pub const MNT_DETACH: c_int = 2;

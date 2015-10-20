@@ -40,6 +40,7 @@ impl Command {
                 (1, Fd::inherit()),
                 (2, Fd::inherit()),
                 ].into_iter().collect(),
+            close_fds: Vec::new(),
             id_map_commands: None,
         }
     }

@@ -39,6 +39,7 @@ pub struct ChildInfo<'a> {
     pub wakeup_pipe: RawFd,
     pub error_pipe: RawFd,
     pub fds: &'a HashMap<RawFd, RawFd>,
+    pub close_fds: &'a Vec<(RawFd, RawFd)>,
 }
 
 fn raw_with_null(arr: &Vec<CString>) -> Vec<*const c_char> {
@@ -113,6 +114,7 @@ fn prepare_descriptors(fds: &HashMap<RawFd, Fd>)
             &Fd::Fd(ref x) => {
                 x.as_raw_fd()
             }
+            &Fd::RawFd(x) => x,
         };
         // The descriptor must not clobber the descriptors that are passed to
         // a child
@@ -209,6 +211,7 @@ impl Command {
                 wakeup_pipe: wakeup_rd.take().unwrap().into_fd(),
                 error_pipe: errpipe_wr.take().unwrap().into_fd(),
                 fds: &int_fds,
+                close_fds: &self.close_fds,
             };
             child::child_after_clone(&child_info);
         }), &mut nstack[..], flags)));

@@ -39,6 +39,7 @@ mod error;
 mod pipe;
 mod child;
 mod linux;
+mod fds;
 mod run;
 mod status;
 mod wait;
@@ -71,6 +72,7 @@ pub struct Command {
     environ: Option<HashMap<OsString, OsString>>,
     config: config::Config,
     fds: HashMap<RawFd, Fd>,
+    close_fds: Vec<(RawFd, RawFd)>,
     chroot_dir: Option<PathBuf>,
     pivot_root: Option<(PathBuf, PathBuf, bool)>,
     id_map_commands: Option<(PathBuf, PathBuf)>,

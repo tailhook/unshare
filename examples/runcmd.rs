@@ -84,6 +84,7 @@ fn main() {
     uid.map(|uid| cmd.uid(uid));
     chroot.map(|dir| cmd.chroot_dir(dir));
     cmd.unshare(namespaces.iter().cloned());
+    cmd.close_fds(..);
     if groups.len() > 0 { cmd.groups(groups); }
     if escape_stdout {
         cmd.stdout(unshare::Stdio::piped());

@@ -1,13 +1,11 @@
 use std::ffi::OsStr;
 use std::path::Path;
-use std::os::unix::io::RawFd;
 
 use nix::sys::signal::{SigNum};
 
 use ffi_util::ToCString;
 use {Command, Namespace};
 use idmap::{UidMap, GidMap};
-use stdio::{Fd};
 
 
 impl Command {
@@ -207,24 +205,6 @@ impl Command {
     /// `gunzip`).
     pub fn arg0<S: AsRef<OsStr>>(&mut self, arg: S) -> &mut Command {
         self.args[0] = arg.to_cstring();
-        self
-    }
-
-    /// Configuration for any other file descriptor (panics for fds < 3) use
-    /// stdin/stdout/stderr for them
-    ///
-    /// Rust creates file descriptors with CLOEXEC flag by default, so no
-    /// descriptors are inherited except ones specifically configured here
-    /// (and stdio which is inherited by default)
-    pub fn file_descriptor(&mut self, target_fd: RawFd, cfg: Fd)
-        -> &mut Command
-    {
-        if target_fd <= 2 {
-            panic!("Stdio file descriptors must be configured with respective \
-                    methods instead of passing fd {} to `file_descritor()",
-                    target_fd)
-        }
-        self.fds.insert(target_fd, cfg);
         self
     }
 

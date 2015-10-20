@@ -142,6 +142,17 @@ pub unsafe fn child_after_clone(child: &ChildInfo) -> ! {
         }
     }
 
+    for &(start, end) in child.close_fds {
+        if start < end {
+            for fd in start..end {
+                if !child.fds.contains_key(&fd) && fd != epipe {
+                    // Close may fail with ebadf, and it's okay
+                    libc::close(fd);
+                }
+            }
+        }
+    }
+
     if child.cfg.restore_sigmask {
         let mut sigmask: ffi::sigset_t = mem::uninitialized();
         ffi::sigemptyset(&mut sigmask);

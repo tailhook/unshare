@@ -27,6 +27,7 @@ pub enum Fd {
     ReadNull,
     WriteNull,
     Fd(Closing),
+    RawFd(RawFd),
 }
 
 pub struct Closing(RawFd);

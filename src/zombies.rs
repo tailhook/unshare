@@ -19,7 +19,7 @@ impl Iterator for ZombieIterator {
     fn next(&mut self) -> Option<(pid_t, ExitStatus)> {
         use nix::sys::wait::WaitStatus::*;
         loop {
-            match waitpid(0, Some(WNOHANG)) {
+            match waitpid(-1, Some(WNOHANG)) {
                 Ok(Exited(pid, status)) => {
                     return Some((pid, ExitStatus::Exited(status)));
                 }

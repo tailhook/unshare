@@ -208,4 +208,17 @@ impl Command {
         self
     }
 
+    /// Makes child process a group leader
+    ///
+    /// If child process is being launched as a foreground job,
+    /// the child process group needs to be put into the foreground on
+    /// the controlling terminal using `tcsetpgrp`. To request status
+    /// information from stopped child process you should call `waitpid` with
+    /// `WUNTRACED` flag. And then check status with `WIFSTOPPED` macro.
+    /// After giving child process group access to the controlling terminal
+    /// you should send the SIGCONT signal to the child process group.
+    pub fn make_group_leader(&mut self, make_group_leader: bool) -> &mut Command {
+        self.config.make_group_leader = make_group_leader;
+        self
+    }
 }

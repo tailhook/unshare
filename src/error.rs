@@ -17,6 +17,7 @@ pub enum ErrorCode {
     SetUser = 8,
     ChangeRoot = 9,
     SetIdMap = 10,
+    SetPGid = 11,
 }
 
 #[derive(Debug, Clone)]
@@ -62,6 +63,8 @@ pub enum Error {
     /// Error setting uid or gid map. May be either problem running
     /// `newuidmap`/`newgidmap` command or writing the mapping file directly
     SetIdMap(i32),
+    /// Error when calling setpgid function
+    SetPGid(i32),
 }
 
 impl Error {
@@ -82,6 +85,7 @@ impl Error {
             &SetUser(x) => Some(x),
             &ChangeRoot(x) => Some(x),
             &SetIdMap(x) => Some(x),
+            &SetPGid(x) => Some(x),
         }
     }
 }
@@ -103,6 +107,7 @@ impl StdError for Error {
             &SetUser(_) => "error setting user or groups",
             &ChangeRoot(_) => "error changing root directory",
             &SetIdMap(_) => "error setting uid/gid mappings",
+            &SetPGid(_) => "error when calling setpgid",
         }
     }
 }
@@ -174,6 +179,7 @@ impl ErrorCode {
             C::SetUser => E::SetUser(errno),
             C::ChangeRoot => E::ChangeRoot(errno),
             C::SetIdMap => E::SetIdMap(errno),
+            C::SetPGid => E::SetPGid(errno),
         }
     }
     pub fn from_i32(code: i32, errno: i32) -> Error {
@@ -191,6 +197,7 @@ impl ErrorCode {
             c if c == C::SetUser as i32 => E::SetUser(errno),
             c if c == C::ChangeRoot as i32 => E::ChangeRoot(errno),
             c if c == C::SetIdMap as i32 => E::SetIdMap(errno),
+            c if c == C::SetPGid as i32 => E::SetPGid(errno),
             _ => E::UnknownError,
         }
     }

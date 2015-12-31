@@ -11,12 +11,13 @@ use std::collections::HashMap;
 use libc::{c_char, pid_t};
 use nix;
 use nix::errno::{errno, EINTR};
+use nix::fcntl::{fcntl, FcntlArg};
 use nix::fcntl::{open, O_CLOEXEC, O_RDONLY, O_WRONLY};
-use nix::sys::stat::Mode;
 use nix::sched::clone;
 use nix::sys::signal::{SIGKILL, SIGCHLD, kill};
+use nix::sys::stat::Mode;
 use nix::sys::wait::waitpid;
-use nix::fcntl::{fcntl, FcntlArg};
+use nix::unistd::{setpgid};
 
 use child;
 use config::Config;
@@ -252,6 +253,10 @@ impl Command {
         mut wakeup: PipeWriter, mut errpipe: PipeReader)
         -> Result<(), Error>
     {
+        if self.config.make_group_leader {
+            try!(result(Err::SetPGid, setpgid(pid, pid)));
+        }
+
         if let Some(&(ref uids, ref gids)) = self.config.id_maps.as_ref() {
             if let Some(&(ref ucmd, ref gcmd)) = self.id_map_commands.as_ref()
             {

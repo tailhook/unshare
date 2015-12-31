@@ -5,9 +5,8 @@ use std::ptr;
 use libc;
 use nix;
 use libc::{c_void, c_ulong, size_t};
-use libc::funcs::posix88::signal::kill;
-use libc::funcs::posix01::signal::signal;
-use libc::consts::os::posix01::{F_GETFD, F_SETFD};
+use libc::{kill, signal};
+use libc::{F_GETFD, F_SETFD};
 
 use run::ChildInfo;
 use error::ErrorCode as Err;

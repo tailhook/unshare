@@ -11,13 +11,13 @@ use std::collections::HashMap;
 use libc::{c_char, c_int, c_ulong, pid_t};
 use nix;
 use nix::errno::{errno, EINTR};
-use nix::fcntl::{open, O_CLOEXEC, O_RDONLY, O_RDWR, O_WRONLY};
-use nix::sys::stat::Mode;
-use nix::sched::clone;
-use nix::sys::signal::{SIGKILL, SIGCHLD, kill};
-use nix::sys::wait::waitpid;
 use nix::fcntl::{fcntl, FcntlArg};
+use nix::fcntl::{open, O_CLOEXEC, O_RDONLY, O_RDWR, O_WRONLY};
+use nix::sched::clone;
 use nix::sys::ioctl::ioctl;
+use nix::sys::signal::{SIGKILL, SIGCHLD, kill};
+use nix::sys::stat::Mode;
+use nix::sys::wait::waitpid;
 use nix::unistd::setpgid;
 
 use child;

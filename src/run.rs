@@ -8,15 +8,17 @@ use std::os::unix::io::{RawFd, AsRawFd};
 use std::os::unix::ffi::{OsStrExt};
 use std::collections::HashMap;
 
-use libc::{c_char, pid_t};
+use libc::{c_char, c_int, c_ulong, pid_t};
 use nix;
 use nix::errno::{errno, EINTR};
-use nix::fcntl::{open, O_CLOEXEC, O_RDONLY, O_WRONLY};
-use nix::sys::stat::Mode;
-use nix::sched::clone;
-use nix::sys::signal::{SIGKILL, SIGCHLD, kill};
-use nix::sys::wait::waitpid;
 use nix::fcntl::{fcntl, FcntlArg};
+use nix::fcntl::{open, O_CLOEXEC, O_RDONLY, O_RDWR, O_WRONLY};
+use nix::sched::clone;
+use nix::sys::ioctl::ioctl;
+use nix::sys::signal::{SIGKILL, SIGCHLD, kill};
+use nix::sys::stat::Mode;
+use nix::sys::wait::waitpid;
+use nix::unistd::setpgid;
 
 use child;
 use config::Config;
@@ -28,6 +30,8 @@ use stdio::{Fd, Closing};
 use chroot::{Pivot, Chroot};
 use ffi_util::ToCString;
 
+
+static TIOCSPGRP: c_ulong = 21520;
 
 pub struct ChildInfo<'a> {
     pub filename: *const c_char,
@@ -197,6 +201,9 @@ impl Command {
         let mut wakeup_rd = Some(wakeup_rd);
         let mut errpipe_wr = Some(errpipe_wr);
         let flags = self.config.namespaces | SIGCHLD as u32;
+        let tty_fd = try!(result(Err::OpenTty,
+                                 open(Path::new("/dev/tty"), O_RDWR,
+                                      Mode::empty())));
         let pid = try!(result(Err::Fork, clone(Box::new(move || -> isize {
             // Note: mo memory allocations/deallocations here
             let child_info = ChildInfo {
@@ -214,7 +221,7 @@ impl Command {
             child::child_after_clone(&child_info);
         }), &mut nstack[..], flags)));
 
-        if let Err(e) = self.after_start(pid, wakeup, errpipe) {
+        if let Err(e) = self.after_start(pid, tty_fd, wakeup, errpipe) {
             kill(pid, SIGKILL).ok();
             loop {
                 match waitpid(pid, None) {
@@ -248,10 +255,18 @@ impl Command {
         })
     }
 
-    fn after_start(&self, pid: pid_t,
+    fn after_start(&self, pid: pid_t, tty_fd: c_int,
         mut wakeup: PipeWriter, mut errpipe: PipeReader)
         -> Result<(), Error>
     {
+        if self.config.call_setpgid {
+            try!(result(Err::SetPGid, setpgid(pid, pid)));
+            let ioctl_res = unsafe { ioctl(tty_fd, TIOCSPGRP, &pid) };
+            if ioctl_res < 0 {
+                return Err(Error::IoctlTty(errno()));
+            }
+        }
+
         if let Some(&(ref uids, ref gids)) = self.config.id_maps.as_ref() {
             if let Some(&(ref ucmd, ref gcmd)) = self.id_map_commands.as_ref()
             {

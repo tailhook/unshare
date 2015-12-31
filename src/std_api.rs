@@ -151,5 +151,10 @@ impl Command {
         self.config.supplementary_gids = Some(ids);
         self
     }
+
+    pub fn call_setpgid(&mut self, call_setpgid: bool) -> &mut Command {
+        self.config.call_setpgid = call_setpgid;
+        self
+    }
 }
 

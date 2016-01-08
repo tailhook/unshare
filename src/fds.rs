@@ -3,8 +3,8 @@ use std::ops::{Range, RangeTo, RangeFrom, RangeFull};
 use std::os::unix::io::RawFd;
 
 use nix::errno::errno;
-use libc::funcs::posix01::resource::getrlimit;
-use libc::consts::os::posix01::RLIMIT_NOFILE;
+use libc::getrlimit;
+use libc::RLIMIT_NOFILE;
 
 use stdio::{Fd};
 use Command;

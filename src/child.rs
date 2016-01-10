@@ -4,10 +4,10 @@ use std::ptr;
 
 use libc;
 use nix;
-use libc::{c_void, c_ulong, size_t};
-use libc::funcs::posix88::signal::kill;
-use libc::funcs::posix01::signal::signal;
-use libc::consts::os::posix01::{F_GETFD, F_SETFD};
+use libc::{c_void, c_ulong, sigset_t, size_t};
+use libc::{kill, signal};
+use libc::{F_GETFD, F_SETFD, F_DUPFD_CLOEXEC, FD_CLOEXEC, MNT_DETACH};
+use libc::{SIG_DFL, SIG_SETMASK};
 
 use run::ChildInfo;
 use error::ErrorCode as Err;
@@ -28,7 +28,7 @@ pub unsafe fn child_after_clone(child: &ChildInfo) -> ! {
     let mut epipe = child.error_pipe;
 
     child.cfg.death_sig.as_ref().map(|&sig| {
-        if ffi::prctl(ffi::PR_SET_PDEATHSIG, sig as c_ulong, 0, 0, 0) != 0 {
+        if libc::prctl(ffi::PR_SET_PDEATHSIG, sig as c_ulong, 0, 0, 0) != 0 {
             fail(Err::ParentDeathSignal, epipe);
         }
     });
@@ -72,7 +72,7 @@ pub unsafe fn child_after_clone(child: &ChildInfo) -> ! {
 
     // Move error pipe file descriptors in case they clobber stdio
     while epipe < 3 {
-        let nerr = libc::fcntl(epipe, ffi::F_DUPFD_CLOEXEC);
+        let nerr = libc::fcntl(epipe, F_DUPFD_CLOEXEC);
         if nerr < 0 {
             fail(Err::CreatePipe, epipe);
         }
@@ -87,14 +87,14 @@ pub unsafe fn child_after_clone(child: &ChildInfo) -> ! {
             fail(Err::ChangeRoot, epipe);
         }
         if piv.unmount_old_root {
-            if ffi::umount2(piv.old_inside.as_ptr(), ffi::MNT_DETACH) != 0 {
+            if libc::umount2(piv.old_inside.as_ptr(), MNT_DETACH) != 0 {
                 fail(Err::ChangeRoot, epipe);
             }
         }
     });
 
     child.chroot.as_ref().map(|chroot| {
-        if ffi::chroot(chroot.root.as_ptr()) != 0 {
+        if libc::chroot(chroot.root.as_ptr()) != 0 {
             fail(Err::ChangeRoot, epipe);
         }
         if libc::chdir(chroot.workdir.as_ptr()) != 0 {
@@ -109,7 +109,7 @@ pub unsafe fn child_after_clone(child: &ChildInfo) -> ! {
     });
 
     child.cfg.supplementary_gids.as_ref().map(|groups| {
-        if ffi::setgroups(groups.len() as size_t, groups.as_ptr()) != 0 {
+        if libc::setgroups(groups.len() as size_t, groups.as_ptr()) != 0 {
             fail(Err::SetUser, epipe);
         }
     });
@@ -131,7 +131,7 @@ pub unsafe fn child_after_clone(child: &ChildInfo) -> ! {
         if src_fd == dest_fd {
             let flags = libc::fcntl(src_fd, F_GETFD);
             if flags < 0 ||
-                libc::fcntl(src_fd, F_SETFD, flags & !ffi::FD_CLOEXEC) < 0
+                libc::fcntl(src_fd, F_SETFD, flags & !FD_CLOEXEC) < 0
             {
                 fail(Err::StdioError, epipe);
             }
@@ -154,17 +154,17 @@ pub unsafe fn child_after_clone(child: &ChildInfo) -> ! {
     }
 
     if child.cfg.restore_sigmask {
-        let mut sigmask: ffi::sigset_t = mem::uninitialized();
-        ffi::sigemptyset(&mut sigmask);
-        ffi::pthread_sigmask(ffi::SIG_SETMASK, &sigmask, ptr::null_mut());
+        let mut sigmask: sigset_t = mem::uninitialized();
+        libc::sigemptyset(&mut sigmask);
+        libc::pthread_sigmask(SIG_SETMASK, &sigmask, ptr::null_mut());
         for sig in 1..32 {
-            signal(sig, ffi::SIG_DFL);
+            signal(sig, SIG_DFL);
         }
     }
 
-    ffi::execve(child.filename,
-                child.args.as_ptr(),
-                child.environ[..].as_ptr());
+    libc::execve(child.filename,
+                 child.args.as_ptr(),
+                 child.environ[..].as_ptr());
     fail(Err::Exec, epipe);
 }
 
@@ -188,41 +188,12 @@ unsafe fn fail(code: Err, output: RawFd) -> ! {
 /// We don't use functions from nix here because they may allocate memory
 /// which we can't to this this module.
 mod ffi {
-    use libc::{c_char, c_int, c_ulong, size_t, gid_t, sighandler_t};
+    use libc::{c_char, c_int};
 
-    pub const FD_CLOEXEC: c_int = 1;
-    pub const F_DUPFD_CLOEXEC: c_int = 1030;
     pub const PR_SET_PDEATHSIG: c_int = 1;
-    pub const MNT_DETACH: c_int = 2;
-    pub const SIG_SETMASK: c_int = 2;
-    pub const SIG_DFL: sighandler_t = 0 as sighandler_t;
-
-    #[cfg(all(target_os = "linux", target_pointer_width = "32"))]
-    #[repr(C)]
-    pub struct sigset_t {
-        __val: [c_ulong; 32],
-    }
-
-    #[cfg(all(target_os = "linux", target_pointer_width = "64"))]
-    #[repr(C)]
-    pub struct sigset_t {
-        __val: [c_ulong; 16],
-    }
 
     extern {
-        pub fn execve(path: *const c_char, argv: *const *const c_char,
-                      envp: *const *const c_char) -> c_int;
-        pub fn prctl(option: c_int, arg2: c_ulong, arg3: c_ulong,
-            arg4: c_ulong, arg5: c_ulong) -> c_int;
-        pub fn setgroups(size: size_t, gids: *const gid_t) -> c_int;
         pub fn pivot_root(new_root: *const c_char, put_old: *const c_char)
             -> c_int;
-        pub fn chroot(path: *const c_char) -> c_int;
-        pub fn umount2(target: *const c_char, flags: c_int) -> c_int;
-
-        pub fn sigemptyset(set: *mut sigset_t) -> c_int;
-        pub fn pthread_sigmask(how: c_int, set: *const sigset_t,
-                               oldset: *mut sigset_t) -> c_int;
-
     }
 }

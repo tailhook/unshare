@@ -2,9 +2,8 @@
 Rust Unshare
 ============
 
-:Status: beta
+:Status: 90% feature-complete, works in production in lithos_ and powers vagga_
 :Documentation: http://tailhook.github.io/unshare/
-
 
 Unshare is a low-level library to create linux containers.
 
@@ -31,3 +30,6 @@ The following is out of scope:
 * setting up network
 * in-container and out of container supervision
 * handing child signals
+
+.. _lithos: http://lithos.readthedocs.org
+.. _vagga: http://vagga.readthedocs.org

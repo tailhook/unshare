@@ -7,16 +7,20 @@ Rust Unshare
 
 Unshare is a low-level library to create linux containers.
 
-It contains the following (mostly work in progress):
+It contains the following:
 
 * Process creation interface similar to ``std::process::Command``
 * Unsharing arbitrary linux namespaces
 * Ability to change root (chroot/pivot_root), uid, gid, gid_map
 * Some signal mask handling (especially for new processes)
 * Forwarding file descriptors and other unixy stuff (sessions, terminals)
-* Clearing capabilities
-* Setting few important prctl flags
-* Should run both as root user and as unprivileged user
+* Setting few important prctl flags (PR_SET_PDEATHSIG)
+* Runs both as root user and as unprivileged user
+
+Not implemeneted yet:
+
+* Fine grained capabilities control (currently you may change user or use
+  user namespaces)
 
 The following is considered:
 

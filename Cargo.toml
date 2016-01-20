@@ -3,7 +3,7 @@ name = "unshare"
 description = """
     The low-level interface for linux namespaces (containers)
 """
-license = "MIT"
+license = "MIT/Apache-2.0"
 readme = "README.rst"
 keywords = ["linux", "container", "namespace", "docker", "process"]
 homepage = "http://github.com/tailhook/unshare"

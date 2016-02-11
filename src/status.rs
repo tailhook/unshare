@@ -1,5 +1,5 @@
 use std::fmt;
-use nix::sys::signal::SigNum;
+use {SigNum};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ExitStatus {

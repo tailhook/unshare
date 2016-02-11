@@ -1,7 +1,7 @@
 use std::marker::PhantomData;
 
 use libc::pid_t;
-use nix::sys::wait::{waitpid, WNOHANG};
+use nix::sys::wait::{waitpid, WNOHANG, WUNTRACED, WCONTINUED};
 use nix::errno::{EINTR, ECHILD};
 use nix::Error;
 
@@ -95,7 +95,7 @@ impl Iterator for ChildEventsIterator {
         use self::ChildEvent::*;
         use nix::sys::wait::WaitStatus::*;
         loop {
-            match waitpid(0, Some(WNOHANG)) {
+            match waitpid(-1, Some(WNOHANG | WUNTRACED | WCONTINUED)) {
                 Ok(Exited(pid, status)) => {
                     return Some(Death(pid, ExitStatus::Exited(status)));
                 }

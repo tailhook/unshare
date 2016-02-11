@@ -52,7 +52,8 @@ impl Iterator for ZombieIterator {
 /// # Example
 ///
 /// So waiting for all processes to finish may look like this:
-/// ```
+///
+/// ```ignore
 ///     while alive.len() > 0 {
 ///         sigwait()
 ///         for (pid, status) in zombies() {
@@ -130,7 +131,8 @@ impl Iterator for ChildEventsIterator {
 /// # Example
 ///
 /// So waiting for all processes to finish may look like this:
-/// ```
+///
+/// ```ignore
 ///     while alive.len() > 0 {
 ///         sigwait()
 ///         for event in zombies() {

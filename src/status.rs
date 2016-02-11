@@ -1,6 +1,10 @@
 use std::fmt;
 use {SigNum};
 
+/// The exit status of a process
+///
+/// Returned either by `reap_zombies()` or by `child_events()`
+/// or by `Child::wait()`
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ExitStatus {
     /// Process exited normally with some exit code

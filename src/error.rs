@@ -20,6 +20,11 @@ pub enum ErrorCode {
     SetPGid = 11,
 }
 
+/// Error runnning process
+///
+/// This type has very large number of options and it's enum only to be
+/// compact. Probably you shouldn't match on the error cases but just format
+/// it for user into string.
 #[derive(Debug, Clone)]
 pub enum Error {
     /// Invalid path somewhere when running command. Presumably has embedded

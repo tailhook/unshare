@@ -72,7 +72,7 @@ pub unsafe fn child_after_clone(child: &ChildInfo) -> ! {
 
     // Move error pipe file descriptors in case they clobber stdio
     while epipe < 3 {
-        let nerr = libc::fcntl(epipe, F_DUPFD_CLOEXEC);
+        let nerr = libc::fcntl(epipe, F_DUPFD_CLOEXEC, 3);
         if nerr < 0 {
             fail(Err::CreatePipe, epipe);
         }

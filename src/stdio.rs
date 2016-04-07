@@ -2,6 +2,7 @@ use std::io;
 use std::os::unix::io::{RawFd, FromRawFd, AsRawFd, IntoRawFd};
 
 use nix;
+use nix::fcntl::{fcntl, FcntlArg};
 use nix::unistd::dup;
 use libc;
 
@@ -57,7 +58,7 @@ impl Stdio {
     /// A simpler helper method for `from_raw_fd`, that does dup of file
     /// descriptor, so is actually safe to use (but can fail)
     pub fn dup_file<F: AsRawFd>(file: &F) -> io::Result<Stdio> {
-        match dup(file.as_raw_fd()) {
+        match fcntl(file.as_raw_fd(), FcntlArg::F_DUPFD_CLOEXEC(3)) {
             Ok(fd) => Ok(Stdio::Fd(Closing(fd))),
             Err(nix::Error::Sys(errno)) => {
                 return Err(io::Error::from_raw_os_error(errno as i32));

@@ -67,6 +67,9 @@ impl Stdio {
         }
     }
     /// A simpler helper method for `from_raw_fd`, that consumes file
+    ///
+    /// Note: we assume that file descriptor **already has** the `CLOEXEC`
+    /// flag. This is by default for all files opened by rust.
     pub fn from_file<F: IntoRawFd>(file: F) -> Stdio {
         Stdio::Fd(Closing(file.into_raw_fd()))
     }

@@ -131,8 +131,7 @@ impl Command {
         -> &mut Command
     {
         for ns in iter {
-            self.config.namespaces = self.config.namespaces |
-                ns.to_clone_flag();
+            self.config.namespaces |= ns.to_clone_flag();
         }
         self
     }

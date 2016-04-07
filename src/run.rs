@@ -10,6 +10,7 @@ use std::collections::HashMap;
 
 use libc::{c_char, pid_t};
 use nix;
+use nix::sched::CloneFlags;
 use nix::errno::{errno, EINTR};
 use nix::fcntl::{fcntl, FcntlArg};
 use nix::fcntl::{open, O_CLOEXEC, O_RDONLY, O_WRONLY};
@@ -197,7 +198,8 @@ impl Command {
         let mut nstack = [0u8; 4096];
         let mut wakeup_rd = Some(wakeup_rd);
         let mut errpipe_wr = Some(errpipe_wr);
-        let flags = self.config.namespaces | SIGCHLD as u32;
+        let flags = self.config.namespaces |
+            CloneFlags::from_bits(SIGCHLD).unwrap();
         let pid = try!(result(Err::Fork, clone(Box::new(move || -> isize {
             // Note: mo memory allocations/deallocations here
             let child_info = ChildInfo {

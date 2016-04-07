@@ -63,7 +63,7 @@ pub enum Namespace {
 }
 
 impl Namespace {
-    pub fn to_clone_flag(&self) -> u32 {
+    pub fn to_clone_flag(&self) -> consts::CloneFlags {
         match *self {
             Namespace::Mount => consts::CLONE_NEWNS,
             Namespace::Uts => consts::CLONE_NEWUTS,

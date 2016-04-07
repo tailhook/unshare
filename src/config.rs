@@ -1,6 +1,7 @@
 use std::default::Default;
 use std::ffi::CString;
 
+use nix::sched::CloneFlags;
 use nix::sys::signal::{SigNum, SIGKILL};
 use libc::{uid_t, gid_t};
 
@@ -14,7 +15,7 @@ pub struct Config {
     pub gid: Option<gid_t>,
     pub supplementary_gids: Option<Vec<gid_t>>,
     pub id_maps: Option<(Vec<UidMap>, Vec<GidMap>)>,
-    pub namespaces: u32,
+    pub namespaces: CloneFlags,
     pub restore_sigmask: bool,
     pub make_group_leader: bool,
     // TODO(tailhook) session leader
@@ -29,7 +30,7 @@ impl Default for Config {
             gid: None,
             supplementary_gids: None,
             id_maps: None,
-            namespaces: 0,
+            namespaces: CloneFlags::empty(),
             restore_sigmask: true,
             make_group_leader: false,
         }

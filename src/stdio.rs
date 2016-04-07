@@ -1,5 +1,8 @@
-use std::os::unix::io::{RawFd, FromRawFd, AsRawFd};
+use std::io;
+use std::os::unix::io::{RawFd, FromRawFd, AsRawFd, IntoRawFd};
 
+use nix;
+use nix::unistd::dup;
 use libc;
 
 
@@ -51,6 +54,21 @@ impl Stdio {
             (Stdio::Null, true) => Fd::WriteNull,
         }
     }
+    /// A simpler helper method for `from_raw_fd`, that does dup of file
+    /// descriptor, so is actually safe to use (but can fail)
+    pub fn dup_file<F: AsRawFd>(file: &F) -> io::Result<Stdio> {
+        match dup(file.as_raw_fd()) {
+            Ok(fd) => Ok(Stdio::Fd(Closing(fd))),
+            Err(nix::Error::Sys(errno)) => {
+                return Err(io::Error::from_raw_os_error(errno as i32));
+            }
+            Err(nix::Error::InvalidPath) => unreachable!(),
+        }
+    }
+    /// A simpler helper method for `from_raw_fd`, that consumes file
+    pub fn from_file<F: IntoRawFd>(file: F) -> Stdio {
+        Stdio::Fd(Closing(file.into_raw_fd()))
+    }
 }
 
 impl Fd {
@@ -60,12 +78,27 @@ impl Fd {
     pub fn piped_write() -> Fd { Fd::WritePipe }
     /// Inherit the child descriptor from parent
     ///
-    /// Not very useful for custom file descriptors better use `from_raw_fd()`
+    /// Not very useful for custom file descriptors better use `from_file()`
     pub fn inherit() -> Fd { Fd::Inherit }
     /// Create a readable pipe that always has end of file condition
     pub fn read_null() -> Fd { Fd::ReadNull }
     /// Create a writable pipe that ignores all the input
     pub fn write_null() -> Fd { Fd::WriteNull }
+    /// A simpler helper method for `from_raw_fd`, that does dup of file
+    /// descriptor, so is actually safe to use (but can fail)
+    pub fn dup_file<F: AsRawFd>(file: &F) -> io::Result<Fd> {
+        match dup(file.as_raw_fd()) {
+            Ok(fd) => Ok(Fd::Fd(Closing(fd))),
+            Err(nix::Error::Sys(errno)) => {
+                return Err(io::Error::from_raw_os_error(errno as i32));
+            }
+            Err(nix::Error::InvalidPath) => unreachable!(),
+        }
+    }
+    /// A simpler helper method for `from_raw_fd`, that consumes file
+    pub fn from_file<F: IntoRawFd>(file: F) -> Fd {
+        Fd::Fd(Closing(file.into_raw_fd()))
+    }
 }
 
 impl Closing {

@@ -1,6 +1,7 @@
 use std::io;
 use std::fmt;
 use std::error::Error as StdError;
+use status::ExitStatus;
 
 use nix;
 
@@ -68,6 +69,19 @@ pub enum Error {
     /// Error setting uid or gid map. May be either problem running
     /// `newuidmap`/`newgidmap` command or writing the mapping file directly
     SetIdMap(i32),
+    /// Auxillary command failed
+    ///
+    /// There are two auxillary commands for now: `newuidmap` and `newgidmap`.
+    /// They run only when uid mappings (user namespaces) are enabled.
+    ///
+    /// Note that failing to run the binary results to `SedIdMap(sys_errno)`,
+    /// this error contains status code of command that was succesfullly
+    /// spawned.
+    AuxCommandExited(i32),
+    /// Auxillary command was killed by signal
+    ///
+    /// Similar to `AuxCommandExited` but when command was killed
+    AuxCommandKilled(i32),
     /// Error when calling setpgid function
     SetPGid(i32),
 }
@@ -90,6 +104,8 @@ impl Error {
             &SetUser(x) => Some(x),
             &ChangeRoot(x) => Some(x),
             &SetIdMap(x) => Some(x),
+            &AuxCommandExited(..) => None,
+            &AuxCommandKilled(..) => None,
             &SetPGid(x) => Some(x),
         }
     }
@@ -112,6 +128,8 @@ impl StdError for Error {
             &SetUser(_) => "error setting user or groups",
             &ChangeRoot(_) => "error changing root directory",
             &SetIdMap(_) => "error setting uid/gid mappings",
+            &AuxCommandExited(_) => "aux command exited with non-zero code",
+            &AuxCommandKilled(_) => "aux command was killed by signal",
             &SetPGid(_) => "error when calling setpgid",
         }
     }
@@ -141,6 +159,17 @@ pub fn result<T, E: IntoError>(code: ErrorCode, r: Result<T, E>)
     -> Result<T, Error>
 {
     r.map_err(|e| e.into_error(code))
+}
+
+#[inline]
+pub fn cmd_result<E: IntoError>(def_code: ErrorCode, r: Result<ExitStatus, E>)
+    -> Result<(), Error>
+{
+    match try!(r.map_err(|e| e.into_error(def_code))) {
+        ExitStatus::Exited(0) => Ok(()),
+        ExitStatus::Exited(x) => Err(Error::AuxCommandExited(x as i32)),
+        ExitStatus::Signaled(x, _) => Err(Error::AuxCommandKilled(x)),
+    }
 }
 
 pub trait IntoError {

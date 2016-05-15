@@ -22,7 +22,7 @@ use nix::unistd::{setpgid};
 use child;
 use config::Config;
 use {Command, Child, ExitStatus};
-use error::{Error, result};
+use error::{Error, result, cmd_result};
 use error::ErrorCode as Err;
 use pipe::{Pipe, PipeReader, PipeWriter, PipeHolder};
 use stdio::{Fd, Closing};
@@ -267,7 +267,7 @@ impl Command {
                     cmd.arg(format!("{}", map.outside_uid));
                     cmd.arg(format!("{}", map.count));
                 }
-                try!(result(Err::SetIdMap, cmd.status()));
+                try!(cmd_result(Err::SetIdMap, cmd.status()));
                 let mut cmd = Command::new(gcmd);
                 cmd.arg(format!("{}", pid));
                 for map in gids {
@@ -275,7 +275,7 @@ impl Command {
                     cmd.arg(format!("{}", map.outside_gid));
                     cmd.arg(format!("{}", map.count));
                 }
-                try!(result(Err::SetIdMap, cmd.status()));
+                try!(cmd_result(Err::SetIdMap, cmd.status()));
             } else {
                 let mut buf = Vec::new();
                 for map in uids {

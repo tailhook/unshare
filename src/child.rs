@@ -79,6 +79,16 @@ pub unsafe fn child_after_clone(child: &ChildInfo) -> ! {
         epipe = nerr;
     }
 
+    for &(fd, ns) in child.cfg.setns_namespaces.iter() {
+        let nstype = match ns {
+            Some(ns) => ns.to_clone_flag() as i32,
+            None => 0,
+        };
+        if ffi::setns(fd, nstype) != 0 {
+            fail(Err::SetNs, epipe);
+        }
+    }
+
     child.pivot.as_ref().map(|piv| {
         if ffi::pivot_root(piv.new_root.as_ptr(), piv.put_old.as_ptr()) != 0 {
             fail(Err::ChangeRoot, epipe);
@@ -195,5 +205,7 @@ mod ffi {
     extern {
         pub fn pivot_root(new_root: *const c_char, put_old: *const c_char)
             -> c_int;
+
+        pub fn setns(fd: c_int, nstype: c_int) -> c_int;
     }
 }

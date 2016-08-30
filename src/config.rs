@@ -1,10 +1,12 @@
 use std::default::Default;
 use std::ffi::CString;
+use std::os::unix::io::RawFd;
 
 use nix::sys::signal::{SigNum, SIGKILL};
 use libc::{uid_t, gid_t};
 
 use idmap::{UidMap, GidMap};
+use namespace::Namespace;
 
 
 pub struct Config {
@@ -15,6 +17,7 @@ pub struct Config {
     pub supplementary_gids: Option<Vec<gid_t>>,
     pub id_maps: Option<(Vec<UidMap>, Vec<GidMap>)>,
     pub namespaces: u32,
+    pub setns_namespaces: Vec<(RawFd, Option<Namespace>)>,
     pub restore_sigmask: bool,
     pub make_group_leader: bool,
     // TODO(tailhook) session leader
@@ -30,6 +33,7 @@ impl Default for Config {
             supplementary_gids: None,
             id_maps: None,
             namespaces: 0,
+            setns_namespaces: vec!(),
             restore_sigmask: true,
             make_group_leader: false,
         }

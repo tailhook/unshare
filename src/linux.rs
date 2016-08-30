@@ -1,5 +1,6 @@
 use std::ffi::OsStr;
 use std::path::Path;
+use std::os::unix::io::RawFd;
 
 use nix::sys::signal::{SigNum};
 
@@ -133,6 +134,22 @@ impl Command {
         for ns in iter {
             self.config.namespaces |= ns.to_clone_flag();
         }
+        self
+    }
+
+    /// Reassociate child process with a namespace specified by a file
+    /// descriptor
+    ///
+    /// `fd` argument is a file descriptor referring to a namespace
+    ///
+    /// 'ns' is an optional namespace type. `None` allows any type of
+    /// namespace
+    ///
+    /// See `man 2 setns` for further details
+    pub fn setns(&mut self, fd: RawFd, ns: Option<Namespace>)
+        -> &mut Command
+    {
+        self.config.setns_namespaces.push((fd, ns));
         self
     }
 

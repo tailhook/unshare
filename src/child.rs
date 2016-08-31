@@ -1,4 +1,4 @@
-use std::os::unix::io::RawFd;
+use std::os::unix::io::{RawFd, AsRawFd};
 use std::mem;
 use std::ptr;
 
@@ -77,6 +77,13 @@ pub unsafe fn child_after_clone(child: &ChildInfo) -> ! {
             fail(Err::CreatePipe, epipe);
         }
         epipe = nerr;
+    }
+
+    for (ns, fd) in &child.cfg.setns_namespaces {
+        let nstype = ns.to_clone_flag() as i32;
+        if libc::setns(fd.as_raw_fd(), nstype) != 0 {
+            fail(Err::SetNs, epipe);
+        }
     }
 
     child.pivot.as_ref().map(|piv| {

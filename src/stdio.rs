@@ -3,7 +3,6 @@ use std::os::unix::io::{RawFd, FromRawFd, AsRawFd, IntoRawFd};
 
 use nix;
 use nix::fcntl::{fcntl, FcntlArg};
-use nix::unistd::dup;
 use libc;
 
 
@@ -36,6 +35,16 @@ pub enum Fd {
 
 pub struct Closing(RawFd);
 
+pub fn dup_file_cloexec<F: AsRawFd>(file: &F) -> io::Result<Closing> {
+    match fcntl(file.as_raw_fd(), FcntlArg::F_DUPFD_CLOEXEC(3)) {
+        Ok(fd) => Ok(Closing::new(fd)),
+        Err(nix::Error::Sys(errno)) => {
+            return Err(io::Error::from_raw_os_error(errno as i32));
+        }
+        Err(nix::Error::InvalidPath) => unreachable!(),
+    }
+}
+
 impl Stdio {
     /// Pipe is created for child process
     pub fn piped() -> Stdio { Stdio::Pipe }
@@ -58,13 +67,7 @@ impl Stdio {
     /// A simpler helper method for `from_raw_fd`, that does dup of file
     /// descriptor, so is actually safe to use (but can fail)
     pub fn dup_file<F: AsRawFd>(file: &F) -> io::Result<Stdio> {
-        match fcntl(file.as_raw_fd(), FcntlArg::F_DUPFD_CLOEXEC(3)) {
-            Ok(fd) => Ok(Stdio::Fd(Closing(fd))),
-            Err(nix::Error::Sys(errno)) => {
-                return Err(io::Error::from_raw_os_error(errno as i32));
-            }
-            Err(nix::Error::InvalidPath) => unreachable!(),
-        }
+        dup_file_cloexec(file).map(|f| Stdio::Fd(f))
     }
     /// A simpler helper method for `from_raw_fd`, that consumes file
     ///
@@ -91,13 +94,7 @@ impl Fd {
     /// A simpler helper method for `from_raw_fd`, that does dup of file
     /// descriptor, so is actually safe to use (but can fail)
     pub fn dup_file<F: AsRawFd>(file: &F) -> io::Result<Fd> {
-        match dup(file.as_raw_fd()) {
-            Ok(fd) => Ok(Fd::Fd(Closing(fd))),
-            Err(nix::Error::Sys(errno)) => {
-                return Err(io::Error::from_raw_os_error(errno as i32));
-            }
-            Err(nix::Error::InvalidPath) => unreachable!(),
-        }
+        dup_file_cloexec(file).map(|f| Fd::Fd(f))
     }
     /// A simpler helper method for `from_raw_fd`, that consumes file
     pub fn from_file<F: IntoRawFd>(file: F) -> Fd {

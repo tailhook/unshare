@@ -1,11 +1,14 @@
+use std::io;
 use std::ffi::OsStr;
 use std::path::Path;
+use std::os::unix::io::AsRawFd;
 
 use nix::sys::signal::{SigNum};
 
 use ffi_util::ToCString;
 use {Command, Namespace};
 use idmap::{UidMap, GidMap};
+use stdio::dup_file_cloexec;
 
 
 impl Command {
@@ -134,6 +137,24 @@ impl Command {
             self.config.namespaces |= ns.to_clone_flag();
         }
         self
+    }
+
+    /// Reassociate child process with a namespace specified by a file
+    /// descriptor
+    ///
+    /// `file` argument is an open file referring to a namespace
+    ///
+    /// 'ns' is a namespace type
+    ///
+    /// See `man 2 setns` for further details
+    ///
+    /// Note: using `unshare` and `setns` for the same namespace is meaningless.
+    pub fn set_namespace<F: AsRawFd>(&mut self, file: &F, ns: Namespace)
+        -> io::Result<&mut Command>
+    {
+        let fd = try!(dup_file_cloexec(file));
+        self.config.setns_namespaces.insert(ns, fd);
+        Ok(self)
     }
 
     /// Sets user id and group id mappings for new process

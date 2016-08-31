@@ -79,6 +79,14 @@ pub struct Command {
     id_map_commands: Option<(PathBuf, PathBuf)>,
 }
 
+impl Drop for Command {
+    fn drop(&mut self) {
+        for (_, fd) in &self.config.setns_namespaces {
+            unsafe { libc::close(*fd) };
+        }
+    }
+}
+
 /// The reference to the running child
 #[derive(Debug)]
 pub struct Child {

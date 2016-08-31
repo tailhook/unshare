@@ -1,8 +1,11 @@
+use std::io;
 use std::ffi::OsStr;
 use std::path::Path;
-use std::os::unix::io::RawFd;
+use std::os::unix::io::AsRawFd;
 
+use nix;
 use nix::sys::signal::{SigNum};
+use nix::unistd::dup;
 
 use ffi_util::ToCString;
 use {Command, Namespace};
@@ -140,17 +143,25 @@ impl Command {
     /// Reassociate child process with a namespace specified by a file
     /// descriptor
     ///
-    /// `fd` argument is a file descriptor referring to a namespace
+    /// `file` argument is an open file referring to a namespace
     ///
-    /// 'ns' is an optional namespace type. `None` allows any type of
-    /// namespace
+    /// 'ns' is a namespace type
     ///
     /// See `man 2 setns` for further details
-    pub fn setns(&mut self, fd: RawFd, ns: Option<Namespace>)
-        -> &mut Command
+    ///
+    /// Note: using `unshare` and `setns` for the same namespace is meaningless.
+    pub fn set_namespace<F: AsRawFd>(&mut self, file: &F, ns: Namespace)
+        -> io::Result<&mut Command>
     {
-        self.config.setns_namespaces.push((fd, ns));
-        self
+        let fd = match dup(file.as_raw_fd()) {
+            Ok(fd) => fd,
+            Err(nix::Error::Sys(errno)) => {
+                return Err(io::Error::from_raw_os_error(errno as i32));
+            },
+            Err(nix::Error::InvalidPath) => unreachable!(),
+        };
+        self.config.setns_namespaces.insert(ns, fd);
+        Ok(self)
     }
 
     /// Sets user id and group id mappings for new process

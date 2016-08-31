@@ -4,7 +4,7 @@ use nix::sched as consts;
 /// Namespace name to unshare
 ///
 /// See `man 7 namespaces` for more information
-#[derive(PartialEq, Eq, Clone, Copy)]
+#[derive(PartialEq, Eq, Hash, Clone, Copy)]
 pub enum Namespace {
     /// Unshare the mount namespace. It basically means that you can now mount
     /// and unmount folders without touching parent mount points.

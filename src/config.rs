@@ -1,6 +1,5 @@
 use std::default::Default;
 use std::ffi::CString;
-use std::os::unix::io::RawFd;
 use std::collections::HashMap;
 
 use nix::sys::signal::{SigNum, SIGKILL};
@@ -8,6 +7,7 @@ use libc::{uid_t, gid_t};
 
 use idmap::{UidMap, GidMap};
 use namespace::Namespace;
+use stdio::Closing;
 
 
 pub struct Config {
@@ -18,7 +18,7 @@ pub struct Config {
     pub supplementary_gids: Option<Vec<gid_t>>,
     pub id_maps: Option<(Vec<UidMap>, Vec<GidMap>)>,
     pub namespaces: u32,
-    pub setns_namespaces: HashMap<Namespace, RawFd>,
+    pub setns_namespaces: HashMap<Namespace, Closing>,
     pub restore_sigmask: bool,
     pub make_group_leader: bool,
     // TODO(tailhook) session leader

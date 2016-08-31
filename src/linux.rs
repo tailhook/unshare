@@ -3,13 +3,12 @@ use std::ffi::OsStr;
 use std::path::Path;
 use std::os::unix::io::AsRawFd;
 
-use nix;
 use nix::sys::signal::{SigNum};
-use nix::unistd::dup;
 
 use ffi_util::ToCString;
 use {Command, Namespace};
 use idmap::{UidMap, GidMap};
+use stdio::dup_file_cloexec;
 
 
 impl Command {
@@ -153,13 +152,7 @@ impl Command {
     pub fn set_namespace<F: AsRawFd>(&mut self, file: &F, ns: Namespace)
         -> io::Result<&mut Command>
     {
-        let fd = match dup(file.as_raw_fd()) {
-            Ok(fd) => fd,
-            Err(nix::Error::Sys(errno)) => {
-                return Err(io::Error::from_raw_os_error(errno as i32));
-            },
-            Err(nix::Error::InvalidPath) => unreachable!(),
-        };
+        let fd = try!(dup_file_cloexec(file));
         self.config.setns_namespaces.insert(ns, fd);
         Ok(self)
     }

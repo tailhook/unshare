@@ -13,7 +13,7 @@ use nix;
 use nix::errno::{errno, EINTR};
 use nix::fcntl::{fcntl, FcntlArg};
 use nix::fcntl::{open, O_CLOEXEC, O_RDONLY, O_WRONLY};
-use nix::sched::clone;
+use nix::sched::{clone, CloneFlags};
 use nix::sys::signal::{SIGKILL, SIGCHLD, kill};
 use nix::sys::stat::Mode;
 use nix::sys::wait::waitpid;
@@ -39,8 +39,11 @@ pub struct ChildInfo<'a> {
     pub pivot: &'a Option<Pivot>,
     pub wakeup_pipe: RawFd,
     pub error_pipe: RawFd,
-    pub fds: &'a HashMap<RawFd, RawFd>,
-    pub close_fds: &'a Vec<(RawFd, RawFd)>,
+    pub fds: &'a [(RawFd, RawFd)],
+    /// This map may only be used for lookup but not for iteration!
+    pub fd_lookup: &'a HashMap<RawFd, RawFd>,
+    pub close_fds: &'a [(RawFd, RawFd)],
+    pub setns_namespaces: &'a [(CloneFlags, RawFd)],
 }
 
 fn raw_with_null(arr: &Vec<CString>) -> Vec<*const c_char> {
@@ -198,19 +201,31 @@ impl Command {
         let mut wakeup_rd = Some(wakeup_rd);
         let mut errpipe_wr = Some(errpipe_wr);
         let flags = self.config.namespaces | SIGCHLD as u32;
-        let pid = try!(result(Err::Fork, clone(Box::new(move || -> isize {
+        let args_slice = &c_args[..];
+        let environ_slice = &c_environ[..];
+        // We transform all hashmaps into vectors, because iterating over
+        // hash map involves closure which crashes in the child in unoptimized
+        // build
+        let fds = int_fds.iter().map(|(&x, &y)| (x, y)).collect::<Vec<_>>();
+        let close_fds = self.close_fds.iter().cloned().collect::<Vec<_>>();
+        let setns_ns = self.config.setns_namespaces.iter()
+            .map(|(ns, fd)| (ns.to_clone_flag(), fd.as_raw_fd()))
+            .collect::<Vec<_>>();
+        let pid = try!(result(Err::Fork, clone(Box::new(|| -> isize {
             // Note: mo memory allocations/deallocations here
             let child_info = ChildInfo {
                 filename: self.filename.as_ptr(),
-                args: &c_args[..],
-                environ: &c_environ[..],
+                args: args_slice,
+                environ: environ_slice,
                 cfg: &self.config,
                 chroot: &chroot,
                 pivot: &pivot,
                 wakeup_pipe: wakeup_rd.take().unwrap().into_fd(),
                 error_pipe: errpipe_wr.take().unwrap().into_fd(),
-                fds: &int_fds,
-                close_fds: &self.close_fds,
+                fds: &fds,
+                fd_lookup: &int_fds,
+                close_fds: &close_fds,
+                setns_namespaces: &setns_ns,
             };
             child::child_after_clone(&child_info);
         }), &mut nstack[..], flags)));

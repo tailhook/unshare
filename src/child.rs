@@ -1,4 +1,4 @@
-use std::os::unix::io::{RawFd, AsRawFd};
+use std::os::unix::io::RawFd;
 use std::mem;
 use std::ptr;
 
@@ -79,9 +79,8 @@ pub unsafe fn child_after_clone(child: &ChildInfo) -> ! {
         epipe = nerr;
     }
 
-    for (ns, fd) in &child.cfg.setns_namespaces {
-        let nstype = ns.to_clone_flag() as i32;
-        if libc::setns(fd.as_raw_fd(), nstype) != 0 {
+    for &(nstype, fd) in child.setns_namespaces {
+        if libc::setns(fd, nstype as i32) != 0 {
             fail(Err::SetNs, epipe);
         }
     }
@@ -134,7 +133,7 @@ pub unsafe fn child_after_clone(child: &ChildInfo) -> ! {
     });
 
 
-    for (&dest_fd, &src_fd) in child.fds.iter() {
+    for &(dest_fd, src_fd) in child.fds {
         if src_fd == dest_fd {
             let flags = libc::fcntl(src_fd, F_GETFD);
             if flags < 0 ||
@@ -152,7 +151,7 @@ pub unsafe fn child_after_clone(child: &ChildInfo) -> ! {
     for &(start, end) in child.close_fds {
         if start < end {
             for fd in start..end {
-                if !child.fds.contains_key(&fd) && fd != epipe {
+                if child.fds.iter().find(|&&(cfd, _)| cfd == fd).is_none() {
                     // Close may fail with ebadf, and it's okay
                     libc::close(fd);
                 }
@@ -171,7 +170,7 @@ pub unsafe fn child_after_clone(child: &ChildInfo) -> ! {
 
     libc::execve(child.filename,
                  child.args.as_ptr(),
-                 child.environ[..].as_ptr());
+                 child.environ.as_ptr());
     fail(Err::Exec, epipe);
 }
 

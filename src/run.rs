@@ -229,6 +229,8 @@ impl Command {
             };
             child::child_after_clone(&child_info);
         }), &mut nstack[..], flags)));
+        drop(wakeup_rd);
+        drop(errpipe_wr); // close pipe so we don't wait for ourself
 
         if let Err(e) = self.after_start(pid, wakeup, errpipe) {
             kill(pid, SIGKILL).ok();

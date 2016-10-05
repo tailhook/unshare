@@ -8,9 +8,9 @@ use std::os::unix::io::{RawFd, AsRawFd};
 use std::os::unix::ffi::{OsStrExt};
 use std::collections::HashMap;
 
-use libc::{c_char, pid_t};
+use libc::{c_char, pid_t, close};
 use nix;
-use nix::errno::{errno, EINTR};
+use nix::errno::EINTR;
 use nix::fcntl::{fcntl, FcntlArg};
 use nix::fcntl::{open, O_CLOEXEC, O_RDONLY, O_WRONLY};
 use nix::sched::{clone, CloneFlags};
@@ -198,6 +198,7 @@ impl Command {
         });
 
         let mut nstack = [0u8; 4096];
+        let mut wakeup = Some(wakeup);
         let mut wakeup_rd = Some(wakeup_rd);
         let mut errpipe_wr = Some(errpipe_wr);
         let flags = self.config.namespaces | SIGCHLD as u32;
@@ -213,6 +214,7 @@ impl Command {
             .collect::<Vec<_>>();
         let pid = try!(result(Err::Fork, clone(Box::new(|| -> isize {
             // Note: mo memory allocations/deallocations here
+            close(wakeup.take().unwrap().into_fd());
             let child_info = ChildInfo {
                 filename: self.filename.as_ptr(),
                 args: args_slice,
@@ -232,7 +234,7 @@ impl Command {
         drop(wakeup_rd);
         drop(errpipe_wr); // close pipe so we don't wait for ourself
 
-        if let Err(e) = self.after_start(pid, wakeup, errpipe) {
+        if let Err(e) = self.after_start(pid, wakeup.unwrap(), errpipe) {
             kill(pid, SIGKILL).ok();
             loop {
                 match waitpid(pid, None) {

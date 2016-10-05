@@ -8,7 +8,7 @@ readme = "README.rst"
 keywords = ["linux", "container", "namespace", "docker", "process"]
 homepage = "http://github.com/tailhook/unshare"
 documentation = "http://tailhook.github.io/unshare/"
-version = "0.1.13"
+version = "0.1.14"
 authors = ["paul@colomiets.name"]
 
 [dependencies]

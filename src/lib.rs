@@ -26,6 +26,7 @@
 //! Anyway this is low-level interface. You may want to use some higher level
 //! abstraction which mounts filesystems, sets network and monitors processes.
 //!
+#![warn(missing_docs)]
 extern crate libc;
 extern crate nix;
 
@@ -55,6 +56,7 @@ pub use namespace::{Namespace};
 pub use idmap::{UidMap, GidMap};
 pub use zombies::{reap_zombies, child_events, ChildEvent};
 pub use nix::sys::signal::SigNum;
+pub use debug::{Style, Printer};
 
 use std::ffi::{CString, OsString};
 use std::path::PathBuf;

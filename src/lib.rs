@@ -87,7 +87,10 @@ pub struct Child {
     pid: pid_t,
     status: Option<ExitStatus>,
     fds: HashMap<RawFd, PipeHolder>,
+    /// Stdin of a child if it is a pipe
     pub stdin: Option<PipeWriter>,
+    /// Stdout of a child if it is a pipe
     pub stdout: Option<PipeReader>,
+    /// Stderr of a child if it is a pipe
     pub stderr: Option<PipeReader>,
 }

@@ -11,10 +11,15 @@ use error::{result, Error};
 use error::ErrorCode::CreatePipe;
 
 
+/// A pipe used to communicate with subprocess
 #[derive(Debug)]
 pub struct Pipe(RawFd, RawFd);
+
+/// A reading end of `Pipe` object after `Pipe::split`
 #[derive(Debug)]
 pub struct PipeReader(RawFd);
+
+/// A writing end of `Pipe` object after `Pipe::split`
 #[derive(Debug)]
 pub struct PipeWriter(RawFd);
 
@@ -48,6 +53,8 @@ impl Drop for Pipe {
 }
 
 impl PipeReader {
+    /// Extract file descriptor from pipe reader without closing
+    // TODO(tailhook) implement IntoRawFd here
     pub fn into_fd(self) -> RawFd {
         let PipeReader(fd) = self;
         mem::forget(self);
@@ -56,6 +63,8 @@ impl PipeReader {
 }
 
 impl PipeWriter {
+    /// Extract file descriptor from pipe reader without closing
+    // TODO(tailhook) implement IntoRawFd here
     pub fn into_fd(self) -> RawFd {
         let PipeWriter(fd) = self;
         mem::forget(self);

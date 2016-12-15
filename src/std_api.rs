@@ -58,6 +58,8 @@ impl Command {
     }
 
     // TODO(tailhook) It's only public for our run module any better way?
+    // TODO(tailhook) make it private
+    #[doc(hidden)]
     pub fn init_env_map(&mut self) {
         if self.environ.is_none() {
             self.environ = Some(env::vars_os().collect());

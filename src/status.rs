@@ -14,15 +14,18 @@ pub enum ExitStatus {
 }
 
 impl ExitStatus {
+    /// Returns `true` if this exit status means successful exit
     pub fn success(&self) -> bool {
         self == &ExitStatus::Exited(0)
     }
+    /// Returns exit code if the process has exited normally
     pub fn code(&self) -> Option<i32> {
         match self {
             &ExitStatus::Exited(e) => Some(e as i32),
             &ExitStatus::Signaled(_, _) => None,
         }
     }
+    /// Returns signal number if he process was killed by signal
     pub fn signal(&self) -> Option<i32> {
         match self {
             &ExitStatus::Exited(_) => None,

@@ -11,9 +11,13 @@ use libc;
 /// The enumeration members might be non-stable, it's better to use
 /// one of the constructors to create an instance
 pub enum Stdio {
+    /// This fd will use pipe to/from the appliation
     Pipe,
+    /// This fd will be inherited from the parent application
     Inherit,
+    /// This fd will open /dev/null in read or write mode
     Null,
+    /// This is fd passed by application (and closed by `unshare`)
     Fd(Closing),
 }
 
@@ -23,13 +27,21 @@ pub enum Stdio {
 ///
 /// The enumeration members might be non-stable, it's better to use
 /// one of the constructors to create an instance
+// TODO(tailhook) should this object be hidden?
 pub enum Fd {
+    /// This fd is a reading end of a pipe
     ReadPipe,
+    /// This fd is a writing end of a pipe
     WritePipe,
+    /// This fd is inherited from parent (current) process
     Inherit,
+    /// This fd is redirected from `/dev/null`
     ReadNull,
+    /// This fd is redirected to `/dev/null`
     WriteNull,
+    /// This is fd passed by application (and closed by `unshare`)
     Fd(Closing),
+    /// This is fd passed by application (and not closed by `unshare`)
     RawFd(RawFd),
 }
 

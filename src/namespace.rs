@@ -65,7 +65,7 @@ pub enum Namespace {
 impl Namespace {
     /// Convert namespace to a clone flag passed to syscalls
     // TODO(tailhook) should this method be private?
-    pub fn to_clone_flag(&self) -> u32 {
+    pub fn to_clone_flag(&self) -> consts::CloneFlags {
         match *self {
             Namespace::Mount => consts::CLONE_NEWNS,
             Namespace::Uts => consts::CLONE_NEWUTS,

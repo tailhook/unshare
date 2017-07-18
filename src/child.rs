@@ -80,7 +80,7 @@ pub unsafe fn child_after_clone(child: &ChildInfo) -> ! {
     }
 
     for &(nstype, fd) in child.setns_namespaces {
-        if libc::setns(fd, nstype as i32) != 0 {
+        if libc::setns(fd, nstype.bits()) != 0 {
             fail(Err::SetNs, epipe);
         }
     }

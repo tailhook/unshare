@@ -13,7 +13,7 @@ authors = ["paul@colomiets.name"]
 
 [dependencies]
 libc = "0.2.4"
-nix = "0.4.2"
+nix = "0.5.1"
 
 [dev-dependencies]
 argparse = "0.2.1"

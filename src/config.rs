@@ -3,7 +3,7 @@ use std::ffi::CString;
 use std::collections::HashMap;
 
 use nix::sys::signal::{SigNum, SIGKILL};
-use libc::{uid_t, gid_t};
+use libc::{uid_t, gid_t, c_int};
 
 use idmap::{UidMap, GidMap};
 use namespace::Namespace;
@@ -17,7 +17,7 @@ pub struct Config {
     pub gid: Option<gid_t>,
     pub supplementary_gids: Option<Vec<gid_t>>,
     pub id_maps: Option<(Vec<UidMap>, Vec<GidMap>)>,
-    pub namespaces: u32,
+    pub namespaces: c_int,
     pub setns_namespaces: HashMap<Namespace, Closing>,
     pub restore_sigmask: bool,
     pub make_group_leader: bool,

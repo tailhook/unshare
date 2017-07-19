@@ -45,7 +45,7 @@ pub unsafe fn child_after_clone(child: &ChildInfo) -> ! {
             // Parent already dead presumably before we had a chance to
             // set PDEATHSIG, so just send signal ourself in that case
             if let Some(sig) = child.cfg.death_sig {
-                kill(libc::getpid(), sig);
+                kill(libc::getpid(), sig as i32);
                 libc::_exit(127);
             } else {
                 // In case we wanted to daemonize, just continue

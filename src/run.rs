@@ -10,6 +10,7 @@ use std::collections::HashMap;
 
 use libc::{c_char, pid_t, close};
 use nix;
+use nix::c_int;
 use nix::errno::EINTR;
 use nix::fcntl::{fcntl, FcntlArg};
 use nix::fcntl::{open, O_CLOEXEC, O_RDONLY, O_WRONLY};
@@ -28,6 +29,7 @@ use pipe::{Pipe, PipeReader, PipeWriter, PipeHolder};
 use stdio::{Fd, Closing};
 use chroot::{Pivot, Chroot};
 use ffi_util::ToCString;
+use namespace::to_clone_flag;
 
 
 pub struct ChildInfo<'a> {
@@ -200,7 +202,6 @@ impl Command {
         let mut wakeup = Some(wakeup);
         let mut wakeup_rd = Some(wakeup_rd);
         let mut errpipe_wr = Some(errpipe_wr);
-        let flags = self.config.namespaces | SIGCHLD;
         let args_slice = &c_args[..];
         let environ_slice = &c_environ[..];
         // We transform all hashmaps into vectors, because iterating over
@@ -209,7 +210,7 @@ impl Command {
         let fds = int_fds.iter().map(|(&x, &y)| (x, y)).collect::<Vec<_>>();
         let close_fds = self.close_fds.iter().cloned().collect::<Vec<_>>();
         let setns_ns = self.config.setns_namespaces.iter()
-            .map(|(ns, fd)| (ns.to_clone_flag(), fd.as_raw_fd()))
+            .map(|(ns, fd)| (to_clone_flag(*ns), fd.as_raw_fd()))
             .collect::<Vec<_>>();
         let pid = try!(result(Err::Fork, clone(Box::new(|| -> isize {
             // Note: mo memory allocations/deallocations here
@@ -229,7 +230,7 @@ impl Command {
                 setns_namespaces: &setns_ns,
             };
             child::child_after_clone(&child_info);
-        }), &mut nstack[..], CloneFlags::from_bits(flags).unwrap())));
+        }), &mut nstack[..], self.config.namespaces, Some(SIGCHLD as c_int))));
         drop(wakeup_rd);
         drop(errpipe_wr); // close pipe so we don't wait for ourself
 

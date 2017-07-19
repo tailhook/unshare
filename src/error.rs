@@ -173,7 +173,7 @@ pub fn cmd_result<E: IntoError>(def_code: ErrorCode, r: Result<ExitStatus, E>)
     match try!(r.map_err(|e| e.into_error(def_code))) {
         ExitStatus::Exited(0) => Ok(()),
         ExitStatus::Exited(x) => Err(Error::AuxCommandExited(x as i32)),
-        ExitStatus::Signaled(x, _) => Err(Error::AuxCommandKilled(x)),
+        ExitStatus::Signaled(x, _) => Err(Error::AuxCommandKilled(x as i32)),
     }
 }
 

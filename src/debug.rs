@@ -1,5 +1,7 @@
 use std::fmt::{self, Display};
 
+use nix::sched::CloneFlags;
+
 use Command;
 
 
@@ -120,7 +122,7 @@ impl<'a> fmt::Display for Printer<'a> {
             if let Some((ref new, ref old, unmount)) = cmd.pivot_root {
                 write!(fmt, "; pivot_root=({:?};{:?};{})", new, old, unmount)?;
             }
-            if cmd.config.namespaces != 0 {
+            if cmd.config.namespaces != CloneFlags::empty() {
                 // TODO(tailhook)
             }
             if let Some(ref dir) = cmd.config.work_dir {

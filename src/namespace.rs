@@ -60,19 +60,24 @@ pub enum Namespace {
     /// NSCD. You may isolate unix sockets by using any kind of filesystem
     /// isolation.
     Net,
+    /// Cgroup namespace
+    ///
+    /// Creates a new namespace for CGroups.
+    ///
+    /// See `man 7 cgroup_namespaces` for more information
+    Cgroup,
 }
 
-impl Namespace {
-    /// Convert namespace to a clone flag passed to syscalls
-    // TODO(tailhook) should this method be private?
-    pub fn to_clone_flag(&self) -> consts::CloneFlags {
-        match *self {
-            Namespace::Mount => consts::CLONE_NEWNS,
-            Namespace::Uts => consts::CLONE_NEWUTS,
-            Namespace::Ipc => consts::CLONE_NEWIPC,
-            Namespace::User => consts::CLONE_NEWUSER,
-            Namespace::Pid => consts::CLONE_NEWPID,
-            Namespace::Net => consts::CLONE_NEWNET,
-        }
+/// Convert namespace to a clone flag passed to syscalls
+// TODO(tailhook) should this method be private?
+pub fn to_clone_flag(ns: Namespace) -> consts::CloneFlags {
+    match ns {
+        Namespace::Mount => consts::CLONE_NEWNS,
+        Namespace::Uts => consts::CLONE_NEWUTS,
+        Namespace::Ipc => consts::CLONE_NEWIPC,
+        Namespace::User => consts::CLONE_NEWUSER,
+        Namespace::Pid => consts::CLONE_NEWPID,
+        Namespace::Net => consts::CLONE_NEWNET,
+        Namespace::Cgroup => consts::CLONE_NEWCGROUP,
     }
 }

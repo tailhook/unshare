@@ -11,6 +11,6 @@ fn main() {
     match cmd.status().unwrap() {
         // propagate signal
         unshare::ExitStatus::Exited(x) => exit(x as i32),
-        unshare::ExitStatus::Signaled(x, _) => exit((128+x) as i32),
+        unshare::ExitStatus::Signaled(x, _) => exit((128+x as i32) as i32),
     }
 }

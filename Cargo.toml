@@ -12,8 +12,8 @@ version = "0.1.15"
 authors = ["paul@colomiets.name"]
 
 [dependencies]
-libc = "0.2.4"
-nix = "0.5.1"
+libc = "0.2.26"
+nix = "0.8.1"
 
 [dev-dependencies]
 argparse = "0.2.1"

@@ -3,12 +3,13 @@ use std::ffi::OsStr;
 use std::path::Path;
 use std::os::unix::io::AsRawFd;
 
-use nix::sys::signal::{SigNum};
+use nix::sys::signal::{Signal};
 
 use ffi_util::ToCString;
 use {Command, Namespace};
 use idmap::{UidMap, GidMap};
 use stdio::dup_file_cloexec;
+use namespace::to_clone_flag;
 
 
 impl Command {
@@ -48,7 +49,7 @@ impl Command {
     ///
     /// To reset this behavior use ``allow_daemonize()``.
     ///
-    pub fn set_parent_death_signal(&mut self, sig: SigNum) -> &mut Command {
+    pub fn set_parent_death_signal(&mut self, sig: Signal) -> &mut Command {
         self.config.death_sig = Some(sig);
         self
     }
@@ -134,7 +135,7 @@ impl Command {
         -> &mut Command
     {
         for ns in iter {
-            self.config.namespaces |= ns.to_clone_flag().bits();
+            self.config.namespaces |= to_clone_flag(ns);
         }
         self
     }

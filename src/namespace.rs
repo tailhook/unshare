@@ -1,5 +1,5 @@
 use nix::sched as consts;
-
+use libc::c_int;
 
 /// Namespace name to unshare
 ///
@@ -64,15 +64,18 @@ pub enum Namespace {
 
 impl Namespace {
     /// Convert namespace to a clone flag passed to syscalls
-    // TODO(tailhook) should this method be private?
-    pub fn to_clone_flag(&self) -> consts::CloneFlags {
-        match *self {
-            Namespace::Mount => consts::CLONE_NEWNS,
-            Namespace::Uts => consts::CLONE_NEWUTS,
-            Namespace::Ipc => consts::CLONE_NEWIPC,
-            Namespace::User => consts::CLONE_NEWUSER,
-            Namespace::Pid => consts::CLONE_NEWPID,
-            Namespace::Net => consts::CLONE_NEWNET,
-        }
+    pub fn to_clone_flag(&self) -> c_int {
+        clone_flag(self).bits()
+    }
+}
+
+pub fn clone_flag(ns: &Namespace) -> consts::CloneFlags {
+    match *ns {
+        Namespace::Mount => consts::CLONE_NEWNS,
+        Namespace::Uts => consts::CLONE_NEWUTS,
+        Namespace::Ipc => consts::CLONE_NEWIPC,
+        Namespace::User => consts::CLONE_NEWUSER,
+        Namespace::Pid => consts::CLONE_NEWPID,
+        Namespace::Net => consts::CLONE_NEWNET,
     }
 }

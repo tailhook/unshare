@@ -20,6 +20,7 @@ use nix::sys::wait::waitpid;
 use nix::unistd::{setpgid};
 
 use child;
+use namespace::clone_flag;
 use config::Config;
 use {Command, Child, ExitStatus};
 use error::{Error, result, cmd_result};
@@ -210,7 +211,7 @@ impl Command {
         let fds = int_fds.iter().map(|(&x, &y)| (x, y)).collect::<Vec<_>>();
         let close_fds = self.close_fds.iter().cloned().collect::<Vec<_>>();
         let setns_ns = self.config.setns_namespaces.iter()
-            .map(|(ns, fd)| (ns.to_clone_flag(), fd.as_raw_fd()))
+            .map(|(ns, fd)| (clone_flag(ns), fd.as_raw_fd()))
             .collect::<Vec<_>>();
         let pid = try!(result(Err::Fork, clone(Box::new(|| -> isize {
             // Note: mo memory allocations/deallocations here

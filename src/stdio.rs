@@ -1,5 +1,5 @@
 use std::io;
-use std::os::unix::io::{RawFd, FromRawFd, AsRawFd, IntoRawFd};
+use std::os::unix::io::{RawFd, AsRawFd, IntoRawFd};
 
 use nix;
 use nix::fcntl::{fcntl, FcntlArg};
@@ -41,8 +41,6 @@ pub enum Fd {
     WriteNull,
     /// This is fd passed by application (and closed by `unshare`)
     Fd(Closing),
-    /// This is fd passed by application (and not closed by `unshare`)
-    RawFd(RawFd),
 }
 
 pub struct Closing(RawFd);
@@ -117,18 +115,6 @@ impl Fd {
 impl Closing {
     pub fn new(fd: RawFd) -> Closing {
         Closing(fd)
-    }
-}
-
-impl FromRawFd for Stdio {
-    unsafe fn from_raw_fd(fd: RawFd) -> Stdio {
-        return Stdio::Fd(Closing(fd));
-    }
-}
-
-impl FromRawFd for Fd {
-    unsafe fn from_raw_fd(fd: RawFd) -> Fd {
-        return Fd::Fd(Closing(fd));
     }
 }
 

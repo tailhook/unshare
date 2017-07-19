@@ -118,7 +118,6 @@ fn prepare_descriptors(fds: &HashMap<RawFd, Fd>)
             &Fd::Fd(ref x) => {
                 x.as_raw_fd()
             }
-            &Fd::RawFd(x) => x,
         };
         // The descriptor must not clobber the descriptors that are passed to
         // a child

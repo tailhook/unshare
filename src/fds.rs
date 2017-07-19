@@ -38,20 +38,6 @@ impl Command {
         self
     }
 
-    /// Pass Raw file descriptor to the application
-    ///
-    /// This method assumes that file descriptor is owned by an application
-    /// and application is smart enough to keep it until process is started.
-    ///
-    /// This is useful to avoid `dup()`ing of file descriptors that need to
-    /// be hold by process supervisor.
-    pub unsafe fn file_descriptor_raw(&mut self, target_fd: RawFd, src: RawFd)
-        -> &mut Command
-    {
-        self.fds.insert(target_fd, Fd::RawFd(src));
-        self
-    }
-
     /// Close a range of file descriptors as soon as process forks
     ///
     /// Subsequent calls to this method add additional range. Use `reset_fds`

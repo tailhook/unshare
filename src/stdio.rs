@@ -45,8 +45,8 @@ pub enum Fd {
 
 pub struct Closing(RawFd);
 
-pub fn dup_file_cloexec<F: AsRawFd>(file: &F) -> io::Result<Closing> {
-    match fcntl(file.as_raw_fd(), FcntlArg::F_DUPFD_CLOEXEC(3)) {
+pub fn dup_file_cloexec(raw_fd: RawFd) -> io::Result<Closing> {
+    match fcntl(raw_fd, FcntlArg::F_DUPFD_CLOEXEC(3)) {
         Ok(fd) => Ok(Closing::new(fd)),
         Err(nix::Error::Sys(errno)) => {
             return Err(io::Error::from_raw_os_error(errno as i32));
@@ -74,12 +74,15 @@ impl Stdio {
             (Stdio::Null, true) => Fd::WriteNull,
         }
     }
-    /// A simpler helper method for `from_raw_fd`, that does dup of file
-    /// descriptor, so is actually safe to use (but can fail)
-    pub fn dup_file<F: AsRawFd>(file: &F) -> io::Result<Stdio> {
-        dup_file_cloexec(file).map(|f| Stdio::Fd(f))
+    /// Duplicate file descriptor, so is actually safe to use (but can fail)
+    pub fn dup_raw_fd(raw_fd: RawFd) -> io::Result<Stdio> {
+        dup_file_cloexec(raw_fd).map(|f| Stdio::Fd(f))
     }
-    /// A simpler helper method for `from_raw_fd`, that consumes file
+    /// A helper method for `dup_raw_fd`, that duplicates a file descriptor from a given file.
+    pub fn dup_file<F: AsRawFd>(file: &F) -> io::Result<Stdio> {
+        Stdio::dup_raw_fd(file.as_raw_fd())
+    }
+    /// Create a Stdio object by consuming a file
     ///
     /// Note: we assume that file descriptor **already has** the `CLOEXEC`
     /// flag. This is by default for all files opened by rust.
@@ -104,7 +107,7 @@ impl Fd {
     /// A simpler helper method for `from_raw_fd`, that does dup of file
     /// descriptor, so is actually safe to use (but can fail)
     pub fn dup_file<F: AsRawFd>(file: &F) -> io::Result<Fd> {
-        dup_file_cloexec(file).map(|f| Fd::Fd(f))
+        dup_file_cloexec(file.as_raw_fd()).map(|f| Fd::Fd(f))
     }
     /// A simpler helper method for `from_raw_fd`, that consumes file
     pub fn from_file<F: IntoRawFd>(file: F) -> Fd {

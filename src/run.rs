@@ -8,9 +8,8 @@ use std::os::unix::io::{RawFd, AsRawFd};
 use std::os::unix::ffi::{OsStrExt};
 use std::collections::HashMap;
 
-use libc::{c_char, pid_t, close};
+use libc::{c_char, close};
 use nix;
-use nix::c_int;
 use nix::errno::EINTR;
 use nix::fcntl::{fcntl, FcntlArg};
 use nix::fcntl::{open, O_CLOEXEC, O_RDONLY, O_WRONLY};
@@ -18,7 +17,7 @@ use nix::sched::{clone, CloneFlags};
 use nix::sys::signal::{SIGKILL, SIGCHLD, kill};
 use nix::sys::stat::Mode;
 use nix::sys::wait::waitpid;
-use nix::unistd::{setpgid};
+use nix::unistd::{setpgid, Pid};
 
 use child;
 use config::Config;
@@ -230,7 +229,7 @@ impl Command {
                 setns_namespaces: &setns_ns,
             };
             child::child_after_clone(&child_info);
-        }), &mut nstack[..], self.config.namespaces, Some(SIGCHLD as c_int))));
+        }), &mut nstack[..], self.config.namespaces, Some(SIGCHLD as i32))));
         drop(wakeup_rd);
         drop(errpipe_wr); // close pipe so we don't wait for ourself
 
@@ -247,7 +246,7 @@ impl Command {
 
         let mut outer_fds = ext_fds;
         Ok(Child {
-            pid: pid,
+            pid: pid.into(),
             status: None,
             stdin: outer_fds.remove(&0).map(|x| {
                 match x {
@@ -268,7 +267,7 @@ impl Command {
         })
     }
 
-    fn after_start(&self, pid: pid_t,
+    fn after_start(&self, pid: Pid,
         mut wakeup: PipeWriter, mut errpipe: PipeReader)
         -> Result<(), Error>
     {

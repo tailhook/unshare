@@ -19,22 +19,22 @@ impl Iterator for ZombieIterator {
     fn next(&mut self) -> Option<(pid_t, ExitStatus)> {
         use nix::sys::wait::WaitStatus::*;
         loop {
-            match waitpid(-1, Some(WNOHANG)) {
+            match waitpid(None, Some(WNOHANG)) {
                 Ok(PtraceEvent(..)) => {}
+                Ok(PtraceSyscall(..)) => {}
                 Ok(Exited(pid, status)) => {
-                    return Some((pid, ExitStatus::Exited(status)));
+                    return Some((pid.into(), ExitStatus::Exited(status)));
                 }
                 Ok(Signaled(pid, sig, core)) => {
-                    return Some((pid, ExitStatus::Signaled(sig, core)));
+                    return Some((pid.into(), ExitStatus::Signaled(sig, core)));
                 }
                 Ok(Stopped(_, _)) => continue,
                 Ok(Continued(_)) => continue,
                 Ok(StillAlive) => return None,
                 Err(Error::Sys(EINTR)) => continue,
                 Err(Error::Sys(ECHILD)) => return None,
-                Err(Error::InvalidPath) => unreachable!(),
-                Err(Error::Sys(x)) => {
-                    panic!("Unexpected waitpid error: {:?}", x);
+                Err(e) => {
+                    panic!("Unexpected waitpid error: {:?}", e);
                 }
             }
         }
@@ -97,22 +97,24 @@ impl Iterator for ChildEventsIterator {
         use self::ChildEvent::*;
         use nix::sys::wait::WaitStatus::*;
         loop {
-            match waitpid(-1, Some(WNOHANG | WUNTRACED | WCONTINUED)) {
+            match waitpid(None, Some(WNOHANG | WUNTRACED | WCONTINUED)) {
                 Ok(PtraceEvent(..)) => {}
+                Ok(PtraceSyscall(..)) => {}
                 Ok(Exited(pid, status)) => {
-                    return Some(Death(pid, ExitStatus::Exited(status)));
+                    return Some(Death(pid.into(),
+                                      ExitStatus::Exited(status)));
                 }
                 Ok(Signaled(pid, sig, core)) => {
-                    return Some(Death(pid, ExitStatus::Signaled(sig, core)));
+                    return Some(Death(pid.into(),
+                                      ExitStatus::Signaled(sig, core)));
                 }
-                Ok(Stopped(pid, sig)) => return Some(Stop(pid, sig)),
-                Ok(Continued(pid)) => return Some(Continue(pid)),
+                Ok(Stopped(pid, sig)) => return Some(Stop(pid.into(), sig)),
+                Ok(Continued(pid)) => return Some(Continue(pid.into())),
                 Ok(StillAlive) => return None,
                 Err(Error::Sys(EINTR)) => continue,
                 Err(Error::Sys(ECHILD)) => return None,
-                Err(Error::InvalidPath) => unreachable!(),
-                Err(Error::Sys(x)) => {
-                    panic!("Unexpected waitpid error: {:?}", x);
+                Err(e) => {
+                    panic!("Unexpected waitpid error: {:?}", e);
                 }
             }
         }

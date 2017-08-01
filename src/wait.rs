@@ -2,6 +2,7 @@ use std::io;
 use std::os::unix::io::RawFd;
 
 use nix::Error;
+use nix::unistd::Pid;
 use nix::sys::wait::waitpid;
 use nix::sys::signal::{Signal, SIGKILL, kill};
 use nix::errno::EINTR;
@@ -37,14 +38,15 @@ impl Child {
     fn _wait(&mut self) -> Result<ExitStatus, io::Error> {
         use nix::sys::wait::WaitStatus::*;
         loop {
-            match waitpid(self.pid, None) {
+            match waitpid(Some(Pid::from_raw(self.pid)), None) {
                 Ok(PtraceEvent(..)) => {}
+                Ok(PtraceSyscall(..)) => {}
                 Ok(Exited(x, status)) => {
-                    assert!(x == self.pid);
+                    assert!(i32::from(x) == self.pid);
                     return Ok(ExitStatus::Exited(status));
                 }
                 Ok(Signaled(x, sig, core)) => {
-                    assert!(x == self.pid);
+                    assert!(i32::from(x) == self.pid);
                     return Ok(ExitStatus::Signaled(sig, core));
                 }
                 Ok(Stopped(_, _)) => unreachable!(),
@@ -52,6 +54,11 @@ impl Child {
                 Ok(StillAlive) => unreachable!(),
                 Err(Error::Sys(EINTR)) => continue,
                 Err(Error::InvalidPath) => unreachable!(),
+                Err(Error::InvalidUtf8) => unreachable!(),
+                Err(Error::UnsupportedOperation) => {
+                    return Err(io::Error::new(io::ErrorKind::Other,
+                               "nix error: unsupported operation"));
+                }
                 Err(Error::Sys(x)) => {
                     return Err(io::Error::from_raw_os_error(x as i32))
                 }
@@ -69,10 +76,15 @@ impl Child {
                 "invalid argument: can't kill an exited process",
             ))
         }
-        kill(self.pid, signal)
+        kill(Pid::from_raw(self.pid), signal)
         .map_err(|e| match e {
             Error::Sys(x) => io::Error::from_raw_os_error(x as i32),
             Error::InvalidPath => unreachable!(),
+            Error::InvalidUtf8 => unreachable!(),
+            Error::UnsupportedOperation => {
+                io::Error::new(io::ErrorKind::Other,
+                           "nix error: unsupported operation")
+            }
         })
     }
 

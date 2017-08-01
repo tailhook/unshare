@@ -1,7 +1,6 @@
 use std::fmt;
 use {Signal};
 
-use nix::c_int;
 
 /// The exit status of a process
 ///
@@ -42,32 +41,13 @@ impl fmt::Display for ExitStatus {
         match self {
             &Exited(c) => write!(fmt, "exited with code {}", c),
             &Signaled(sig, false) => {
-                write!(fmt, "killed by signal {}[{}]",
-                    signal_name(sig).unwrap_or("unknown"), sig as c_int)
+                write!(fmt, "killed by signal {:?}[{}]",
+                    sig, sig as i32)
             }
             &Signaled(sig, true) => {
-                write!(fmt, "killed by signal {}[{}] (core dumped)",
-                    signal_name(sig).unwrap_or("unknown"), sig as c_int)
+                write!(fmt, "killed by signal {:?}[{}] (core dumped)",
+                    sig, sig as i32)
             }
         }
-    }
-}
-
-fn signal_name(sig: Signal) -> Option<&'static str> {
-    use nix::sys::signal::Signal as S;
-    match sig {
-        S::SIGABRT => Some("SIGABRT"),
-        S::SIGALRM => Some("SIGALRM"),
-        S::SIGBUS  => Some("SIGBUS"),
-        S::SIGFPE  => Some("SIGFPE"),
-        S::SIGHUP  => Some("SIGHUP"),
-        S::SIGILL  => Some("SIGILL"),
-        S::SIGINT  => Some("SIGINT"),
-        S::SIGKILL => Some("SIGKILL"),
-        S::SIGPIPE => Some("SIGPIPE"),
-        S::SIGQUIT => Some("SIGQUIT"),
-        S::SIGSEGV => Some("SIGSEGV"),
-        S::SIGTERM => Some("SIGTERM"),
-        _ => None,
     }
 }

@@ -29,12 +29,11 @@ pub enum ErrorCode {
 /// it for user into string.
 #[derive(Debug, Clone)]
 pub enum Error {
-    /// Invalid path somewhere when running command. Presumably has embedded
-    /// nulls.
+    /// Unknown nix error
     ///
     /// Frankly, this error should not happen when running process. We just
     /// keep it here in case `nix` returns this error, which should not happen.
-    InvalidPath, // Not sure it's possible, but it is here to convert from
+    NixError, // Not sure it's possible, but it is here to convert from
                  // nix::Error safer
     /// Some invalid error code received from child application
     UnknownError,
@@ -95,7 +94,7 @@ impl Error {
         use self::Error::*;
         match self {
             &UnknownError => None,
-            &InvalidPath => None,
+            &NixError => None,
             &CreatePipe(x) => Some(x),
             &Fork(x) => Some(x),
             &Exec(x) => Some(x),
@@ -120,7 +119,7 @@ impl StdError for Error {
         use self::Error::*;
         match self {
             &UnknownError => "unexpected value received via signal pipe",
-            &InvalidPath => "invalid path passed as argument",
+            &NixError => "some unknown nix error",
             &CreatePipe(_) => "can't create pipe",
             &Fork(_) => "error when forking",
             &Exec(_) => "error when executing",
@@ -185,7 +184,7 @@ impl IntoError for nix::Error {
     fn into_error(self, code: ErrorCode) -> Error {
         match self {
             nix::Error::Sys(x) => code.wrap(x as i32),
-            nix::Error::InvalidPath => Error::InvalidPath,
+            _ => Error::NixError,
         }
     }
 }

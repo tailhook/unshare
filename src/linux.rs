@@ -153,7 +153,7 @@ impl Command {
     pub fn set_namespace<F: AsRawFd>(&mut self, file: &F, ns: Namespace)
         -> io::Result<&mut Command>
     {
-        let fd = try!(dup_file_cloexec(file));
+        let fd = try!(dup_file_cloexec(file.as_raw_fd()));
         self.config.setns_namespaces.insert(ns, fd);
         Ok(self)
     }

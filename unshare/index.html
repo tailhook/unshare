@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="generator" content="rustdoc">
+    <meta name="description" content="API documentation for the Rust `unshare` crate.">
+    <meta name="keywords" content="rust, rustlang, rust-lang, unshare">
+
+    <title>unshare - Rust</title>
+
+    <link rel="stylesheet" type="text/css" href="../normalize.css">
+    <link rel="stylesheet" type="text/css" href="../rustdoc.css">
+    <link rel="stylesheet" type="text/css" href="../main.css">
+    
+
+    
+    
+</head>
+<body class="rustdoc mod">
+    <!--[if lte IE 8]>
+    <div class="warning">
+        This old browser is unsupported and will most likely display funky
+        things.
+    </div>
+    <![endif]-->
+
+    
+
+    <nav class="sidebar">
+        
+        <p class='location'>Crate unshare</p><div class="block items"><ul><li><a href="#structs">Structs</a></li><li><a href="#enums">Enums</a></li><li><a href="#functions">Functions</a></li></ul></div><p class='location'></p><script>window.sidebarCurrent = {name: 'unshare', ty: 'mod', relpath: '../'};</script>
+    </nav>
+
+    <nav class="sub">
+        <form class="search-form js-only">
+            <div class="search-container">
+                <input class="search-input" name="search"
+                       autocomplete="off"
+                       placeholder="Click or press ‘S’ to search, ‘?’ for more options…"
+                       type="search">
+            </div>
+        </form>
+    </nav>
+
+    <section id='main' class="content">
+<h1 class='fqn'><span class='in-band'>Crate <a class="mod" href=''>unshare</a></span><span class='out-of-band'><span id='render-detail'>
+                   <a id="toggle-all-docs" href="javascript:void(0)" title="collapse all docs">
+                       [<span class='inner'>&#x2212;</span>]
+                   </a>
+               </span><a class='srclink' href='../src/unshare/lib.rs.html#1-96' title='goto source code'>[src]</a></span></h1>
+<div class='docblock'><p>The <code>Command</code> has mostly same API as <code>std::process::Command</code> except where
+is absolutely needed.</p>
+
+<p>In addition <code>Command</code> contains methods to configure linux namespaces,
+chroots and more linux stuff.</p>
+
+<p>We have diverged from <code>std::process::Command</code> in the following
+major things:</p>
+
+<ol>
+<li><p>Error handling. Since sometimes we have long chains of system calls
+involved, we need to give user some way to find out which call failed
+with an error, so <code>io::Error</code> is not an option.  We have
+<code>error::Error</code> class which describes the error as precisely as
+possible</p></li>
+<li><p>We set <code>PDEATHSIG</code> to <code>SIGKILL</code> by default. I.e. child process will
+die when parent is dead. This is what you want most of the time. If you
+want to allow child process to daemonize explicitly call the
+<code>allow_daemonize</code> method (but look at documentation of
+<code>Command::set_parent_death_signal</code> first).</p></li>
+<li><p>We don&#39;t search for <code>program</code> in <code>PATH</code>. It&#39;s hard to do right in all
+cases of <code>chroot</code>, <code>pivot_root</code>, user and mount namespaces. So we expect
+its easier to do for your specific container setup.</p></li>
+</ol>
+
+<p>Anyway this is low-level interface. You may want to use some higher level
+abstraction which mounts filesystems, sets network and monitors processes.</p>
+</div><h2 id='structs' class='section-header'><a href="#structs">Structs</a></h2>
+<table>
+                       <tr class=' module-item'>
+                           <td><a class="struct" href="struct.Child.html"
+                                  title='struct unshare::Child'>Child</a></td>
+                           <td class='docblock-short'>
+                                <p>The reference to the running child</p>
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="struct" href="struct.Command.html"
+                                  title='struct unshare::Command'>Command</a></td>
+                           <td class='docblock-short'>
+                                <p>Main class for running processes. Works in the spirit of builder pattern.</p>
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="struct" href="struct.GidMap.html"
+                                  title='struct unshare::GidMap'>GidMap</a></td>
+                           <td class='docblock-short'>
+                                <p>Entry (row) in the gid map</p>
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="struct" href="struct.PipeReader.html"
+                                  title='struct unshare::PipeReader'>PipeReader</a></td>
+                           <td class='docblock-short'>
+                                <p>A reading end of <code>Pipe</code> object after <code>Pipe::split</code></p>
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="struct" href="struct.PipeWriter.html"
+                                  title='struct unshare::PipeWriter'>PipeWriter</a></td>
+                           <td class='docblock-short'>
+                                <p>A writing end of <code>Pipe</code> object after <code>Pipe::split</code></p>
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="struct" href="struct.Printer.html"
+                                  title='struct unshare::Printer'>Printer</a></td>
+                           <td class='docblock-short'>
+                                <p>A temporary value returned from <code>Command::display</code> for the sole purpose
+of being <code>Display</code>&#39;ed.</p>
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="struct" href="struct.Style.html"
+                                  title='struct unshare::Style'>Style</a></td>
+                           <td class='docblock-short'>
+                                <p>This is a builder for various settings of how command may be printed</p>
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="struct" href="struct.UidMap.html"
+                                  title='struct unshare::UidMap'>UidMap</a></td>
+                           <td class='docblock-short'>
+                                <p>Entry (row) in the uid map</p>
+                           </td>
+                       </tr></table><h2 id='enums' class='section-header'><a href="#enums">Enums</a></h2>
+<table>
+                       <tr class=' module-item'>
+                           <td><a class="enum" href="enum.ChildEvent.html"
+                                  title='enum unshare::ChildEvent'>ChildEvent</a></td>
+                           <td class='docblock-short'>
+                                <p>The event returned from <code>child_events()</code> iterator</p>
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="enum" href="enum.Error.html"
+                                  title='enum unshare::Error'>Error</a></td>
+                           <td class='docblock-short'>
+                                <p>Error runnning process</p>
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="enum" href="enum.ExitStatus.html"
+                                  title='enum unshare::ExitStatus'>ExitStatus</a></td>
+                           <td class='docblock-short'>
+                                <p>The exit status of a process</p>
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="enum" href="enum.Fd.html"
+                                  title='enum unshare::Fd'>Fd</a></td>
+                           <td class='docblock-short'>
+                                <p>An enumeration that is used to configure non-stdio file descriptors. It
+differs from stdio one because we must differentiate from readable and
+writable file descriptors for things open by the library</p>
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="enum" href="enum.Namespace.html"
+                                  title='enum unshare::Namespace'>Namespace</a></td>
+                           <td class='docblock-short'>
+                                <p>Namespace name to unshare</p>
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="enum" href="enum.Signal.html"
+                                  title='enum unshare::Signal'>Signal</a></td>
+                           <td class='docblock-short'>
+                                
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="enum" href="enum.Stdio.html"
+                                  title='enum unshare::Stdio'>Stdio</a></td>
+                           <td class='docblock-short'>
+                                <p>An enumeration that is used to configure stdio file descritors</p>
+                           </td>
+                       </tr></table><h2 id='functions' class='section-header'><a href="#functions">Functions</a></h2>
+<table>
+                       <tr class=' module-item'>
+                           <td><a class="fn" href="fn.child_events.html"
+                                  title='fn unshare::child_events'>child_events</a></td>
+                           <td class='docblock-short'>
+                                <p>Creates iterator over child events</p>
+                           </td>
+                       </tr>
+                       <tr class=' module-item'>
+                           <td><a class="fn" href="fn.reap_zombies.html"
+                                  title='fn unshare::reap_zombies'>reap_zombies</a></td>
+                           <td class='docblock-short'>
+                                <p>Creates iterator over zombie processes</p>
+                           </td>
+                       </tr></table></section>
+    <section id='search' class="content hidden"></section>
+
+    <section class="footer"></section>
+
+    <aside id="help" class="hidden">
+        <div>
+            <h1 class="hidden">Help</h1>
+
+            <div class="shortcuts">
+                <h2>Keyboard Shortcuts</h2>
+
+                <dl>
+                    <dt>?</dt>
+                    <dd>Show this help dialog</dd>
+                    <dt>S</dt>
+                    <dd>Focus the search field</dd>
+                    <dt>&larrb;</dt>
+                    <dd>Move up in search results</dd>
+                    <dt>&rarrb;</dt>
+                    <dd>Move down in search results</dd>
+                    <dt>&#9166;</dt>
+                    <dd>Go to active search result</dd>
+                    <dt>+</dt>
+                    <dd>Collapse/expand all sections</dd>
+                </dl>
+            </div>
+
+            <div class="infos">
+                <h2>Search Tricks</h2>
+
+                <p>
+                    Prefix searches with a type followed by a colon (e.g.
+                    <code>fn:</code>) to restrict the search to a given type.
+                </p>
+
+                <p>
+                    Accepted types are: <code>fn</code>, <code>mod</code>,
+                    <code>struct</code>, <code>enum</code>,
+                    <code>trait</code>, <code>type</code>, <code>macro</code>,
+                    and <code>const</code>.
+                </p>
+
+                <p>
+                    Search functions by type signature (e.g.
+                    <code>vec -> usize</code> or <code>* -> vec</code>)
+                </p>
+            </div>
+        </div>
+    </aside>
+
+    
+
+    <script>
+        window.rootPath = "../";
+        window.currentCrate = "unshare";
+    </script>
+    <script src="../main.js"></script>
+    <script defer src="../search-index.js"></script>
+</body>
+</html>

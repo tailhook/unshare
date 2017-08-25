@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="generator" content="rustdoc">
+    <meta name="description" content="Source to the Rust file `src/namespace.rs`.">
+    <meta name="keywords" content="rust, rustlang, rust-lang">
+
+    <title>namespace.rs.html -- source</title>
+
+    <link rel="stylesheet" type="text/css" href="../../normalize.css">
+    <link rel="stylesheet" type="text/css" href="../../rustdoc.css">
+    <link rel="stylesheet" type="text/css" href="../../main.css">
+    
+
+    
+    
+</head>
+<body class="rustdoc source">
+    <!--[if lte IE 8]>
+    <div class="warning">
+        This old browser is unsupported and will most likely display funky
+        things.
+    </div>
+    <![endif]-->
+
+    
+
+    <nav class="sidebar">
+        
+        
+    </nav>
+
+    <nav class="sub">
+        <form class="search-form js-only">
+            <div class="search-container">
+                <input class="search-input" name="search"
+                       autocomplete="off"
+                       placeholder="Click or press ‘S’ to search, ‘?’ for more options…"
+                       type="search">
+            </div>
+        </form>
+    </nav>
+
+    <section id='main' class="content"><pre class="line-numbers"><span id="1"> 1</span>
+<span id="2"> 2</span>
+<span id="3"> 3</span>
+<span id="4"> 4</span>
+<span id="5"> 5</span>
+<span id="6"> 6</span>
+<span id="7"> 7</span>
+<span id="8"> 8</span>
+<span id="9"> 9</span>
+<span id="10">10</span>
+<span id="11">11</span>
+<span id="12">12</span>
+<span id="13">13</span>
+<span id="14">14</span>
+<span id="15">15</span>
+<span id="16">16</span>
+<span id="17">17</span>
+<span id="18">18</span>
+<span id="19">19</span>
+<span id="20">20</span>
+<span id="21">21</span>
+<span id="22">22</span>
+<span id="23">23</span>
+<span id="24">24</span>
+<span id="25">25</span>
+<span id="26">26</span>
+<span id="27">27</span>
+<span id="28">28</span>
+<span id="29">29</span>
+<span id="30">30</span>
+<span id="31">31</span>
+<span id="32">32</span>
+<span id="33">33</span>
+<span id="34">34</span>
+<span id="35">35</span>
+<span id="36">36</span>
+<span id="37">37</span>
+<span id="38">38</span>
+<span id="39">39</span>
+<span id="40">40</span>
+<span id="41">41</span>
+<span id="42">42</span>
+<span id="43">43</span>
+<span id="44">44</span>
+<span id="45">45</span>
+<span id="46">46</span>
+<span id="47">47</span>
+<span id="48">48</span>
+<span id="49">49</span>
+<span id="50">50</span>
+<span id="51">51</span>
+<span id="52">52</span>
+<span id="53">53</span>
+<span id="54">54</span>
+<span id="55">55</span>
+<span id="56">56</span>
+<span id="57">57</span>
+<span id="58">58</span>
+<span id="59">59</span>
+<span id="60">60</span>
+<span id="61">61</span>
+<span id="62">62</span>
+<span id="63">63</span>
+<span id="64">64</span>
+<span id="65">65</span>
+<span id="66">66</span>
+<span id="67">67</span>
+<span id="68">68</span>
+<span id="69">69</span>
+<span id="70">70</span>
+<span id="71">71</span>
+<span id="72">72</span>
+<span id="73">73</span>
+<span id="74">74</span>
+<span id="75">75</span>
+<span id="76">76</span>
+<span id="77">77</span>
+<span id="78">78</span>
+<span id="79">79</span>
+<span id="80">80</span>
+<span id="81">81</span>
+<span id="82">82</span>
+<span id="83">83</span>
+</pre><pre class="rust ">
+<span class="kw">use</span> <span class="ident">nix</span>::<span class="ident">sched</span> <span class="kw">as</span> <span class="ident">consts</span>;
+
+
+<span class="doccomment">/// Namespace name to unshare</span>
+<span class="doccomment">///</span>
+<span class="doccomment">/// See `man 7 namespaces` for more information</span>
+<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">PartialEq</span>, <span class="ident">Eq</span>, <span class="ident">Hash</span>, <span class="ident">Clone</span>, <span class="ident">Copy</span>)]</span>
+<span class="kw">pub</span> <span class="kw">enum</span> <span class="ident">Namespace</span> {
+    <span class="doccomment">/// Unshare the mount namespace. It basically means that you can now mount</span>
+    <span class="doccomment">/// and unmount folders without touching parent mount points.</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// But note that you also have to make all your mountpoints non-shareable</span>
+    <span class="doccomment">/// or changes will be propagated to parent namespace anyway.</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// This is always needed if you want `pivot_root` (but not enforced by</span>
+    <span class="doccomment">/// library)</span>
+    <span class="ident">Mount</span>,
+    <span class="doccomment">/// Unshare the UTS namespace. This allows you to change hostname of the</span>
+    <span class="doccomment">/// new container.</span>
+    <span class="ident">Uts</span>,
+    <span class="doccomment">/// Unshare the IPC namespace. This creates new namespace for System V IPC</span>
+    <span class="doccomment">/// POSIX message queues and similar.</span>
+    <span class="ident">Ipc</span>,
+    <span class="doccomment">/// Unshare user namespace. This allows unprivileged user to be root</span>
+    <span class="doccomment">/// user in new namespace and/or change mappings between real (outer)</span>
+    <span class="doccomment">/// user namespace and the inner one.</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// This one is required if you want to unshare any other namespace without</span>
+    <span class="doccomment">/// root privileges (it&#39;s not enforced by kernel not the library)</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// See `man 7 user_namespaces` for more information.</span>
+    <span class="ident">User</span>,
+    <span class="doccomment">/// Unshare pid namespace. The child process becomes PID 1 (inside</span>
+    <span class="doccomment">/// container) with the following rough list of consequences:</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// 1. All daemon processes are reparented to the process</span>
+    <span class="doccomment">/// 2. All signal dispositions are set to `Ignore`. E.g. process doesn&#39;t</span>
+    <span class="doccomment">///    get killed by `SIGINT` (Ctrl+C), unless signal handler is explicitly</span>
+    <span class="doccomment">///    set</span>
+    <span class="doccomment">/// 3. If the process is dead, all its children are killed by `SIGKILL`</span>
+    <span class="doccomment">///    (i.e. can&#39;t catch the death signal)</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// All this means that most of the time the new process having this</span>
+    <span class="doccomment">/// namespace must be some kind of process supervisor.</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// Also take a note that `/proc` is not automatically changed. So you</span>
+    <span class="doccomment">/// should also unshare `Mount` namespace and mount new `/proc` inside the</span>
+    <span class="doccomment">/// PID namespace.</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// See `man 7 pid_namespaces` for more information</span>
+    <span class="ident">Pid</span>,
+    <span class="doccomment">/// Unshare network namespace</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// New namespace is empty and has no conectivity, even localhost network,</span>
+    <span class="doccomment">/// unless some setup is done afterwards.</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// Note that unix sockets continue to work, but &quot;abstract unix sockets&quot;</span>
+    <span class="doccomment">/// are isolated as a result of this option. The availability of unix</span>
+    <span class="doccomment">/// sockets might also mean that libc is able to resolve DNS names by using</span>
+    <span class="doccomment">/// NSCD. You may isolate unix sockets by using any kind of filesystem</span>
+    <span class="doccomment">/// isolation.</span>
+    <span class="ident">Net</span>,
+    <span class="doccomment">/// Cgroup namespace</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// Creates a new namespace for CGroups.</span>
+    <span class="doccomment">///</span>
+    <span class="doccomment">/// See `man 7 cgroup_namespaces` for more information</span>
+    <span class="ident">Cgroup</span>,
+}
+
+<span class="doccomment">/// Convert namespace to a clone flag passed to syscalls</span>
+<span class="comment">// TODO(tailhook) should this method be private?</span>
+<span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">to_clone_flag</span>(<span class="ident">ns</span>: <span class="ident">Namespace</span>) <span class="op">-&gt;</span> <span class="ident">consts</span>::<span class="ident">CloneFlags</span> {
+    <span class="kw">match</span> <span class="ident">ns</span> {
+        <span class="ident">Namespace</span>::<span class="ident">Mount</span> <span class="op">=&gt;</span> <span class="ident">consts</span>::<span class="ident">CLONE_NEWNS</span>,
+        <span class="ident">Namespace</span>::<span class="ident">Uts</span> <span class="op">=&gt;</span> <span class="ident">consts</span>::<span class="ident">CLONE_NEWUTS</span>,
+        <span class="ident">Namespace</span>::<span class="ident">Ipc</span> <span class="op">=&gt;</span> <span class="ident">consts</span>::<span class="ident">CLONE_NEWIPC</span>,
+        <span class="ident">Namespace</span>::<span class="ident">User</span> <span class="op">=&gt;</span> <span class="ident">consts</span>::<span class="ident">CLONE_NEWUSER</span>,
+        <span class="ident">Namespace</span>::<span class="ident">Pid</span> <span class="op">=&gt;</span> <span class="ident">consts</span>::<span class="ident">CLONE_NEWPID</span>,
+        <span class="ident">Namespace</span>::<span class="ident">Net</span> <span class="op">=&gt;</span> <span class="ident">consts</span>::<span class="ident">CLONE_NEWNET</span>,
+        <span class="ident">Namespace</span>::<span class="ident">Cgroup</span> <span class="op">=&gt;</span> <span class="ident">consts</span>::<span class="ident">CLONE_NEWCGROUP</span>,
+    }
+}
+</pre>
+</section>
+    <section id='search' class="content hidden"></section>
+
+    <section class="footer"></section>
+
+    <aside id="help" class="hidden">
+        <div>
+            <h1 class="hidden">Help</h1>
+
+            <div class="shortcuts">
+                <h2>Keyboard Shortcuts</h2>
+
+                <dl>
+                    <dt>?</dt>
+                    <dd>Show this help dialog</dd>
+                    <dt>S</dt>
+                    <dd>Focus the search field</dd>
+                    <dt>&larrb;</dt>
+                    <dd>Move up in search results</dd>
+                    <dt>&rarrb;</dt>
+                    <dd>Move down in search results</dd>
+                    <dt>&#9166;</dt>
+                    <dd>Go to active search result</dd>
+                    <dt>+</dt>
+                    <dd>Collapse/expand all sections</dd>
+                </dl>
+            </div>
+
+            <div class="infos">
+                <h2>Search Tricks</h2>
+
+                <p>
+                    Prefix searches with a type followed by a colon (e.g.
+                    <code>fn:</code>) to restrict the search to a given type.
+                </p>
+
+                <p>
+                    Accepted types are: <code>fn</code>, <code>mod</code>,
+                    <code>struct</code>, <code>enum</code>,
+                    <code>trait</code>, <code>type</code>, <code>macro</code>,
+                    and <code>const</code>.
+                </p>
+
+                <p>
+                    Search functions by type signature (e.g.
+                    <code>vec -> usize</code> or <code>* -> vec</code>)
+                </p>
+            </div>
+        </div>
+    </aside>
+
+    
+
+    <script>
+        window.rootPath = "../../";
+        window.currentCrate = "unshare";
+    </script>
+    <script src="../../main.js"></script>
+    <script defer src="../../search-index.js"></script>
+</body>
+</html>

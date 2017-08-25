@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="generator" content="rustdoc">
+    <meta name="description" content="API documentation for the Rust `Command` struct in crate `unshare`.">
+    <meta name="keywords" content="rust, rustlang, rust-lang, Command">
+
+    <title>unshare::Command - Rust</title>
+
+    <link rel="stylesheet" type="text/css" href="../normalize.css">
+    <link rel="stylesheet" type="text/css" href="../rustdoc.css">
+    <link rel="stylesheet" type="text/css" href="../main.css">
+    
+
+    
+    
+</head>
+<body class="rustdoc struct">
+    <!--[if lte IE 8]>
+    <div class="warning">
+        This old browser is unsupported and will most likely display funky
+        things.
+    </div>
+    <![endif]-->
+
+    
+
+    <nav class="sidebar">
+        
+        <p class='location'>Struct Command</p><div class="block items"><ul><li><a href="#methods">Methods</a></li><li><a href="#implementations">Trait Implementations</a></li></ul></div><p class='location'><a href='index.html'>unshare</a></p><script>window.sidebarCurrent = {name: 'Command', ty: 'struct', relpath: ''};</script><script defer src="sidebar-items.js"></script>
+    </nav>
+
+    <nav class="sub">
+        <form class="search-form js-only">
+            <div class="search-container">
+                <input class="search-input" name="search"
+                       autocomplete="off"
+                       placeholder="Click or press ‘S’ to search, ‘?’ for more options…"
+                       type="search">
+            </div>
+        </form>
+    </nav>
+
+    <section id='main' class="content">
+<h1 class='fqn'><span class='in-band'>Struct <a href='index.html'>unshare</a>::<wbr><a class="struct" href=''>Command</a></span><span class='out-of-band'><span id='render-detail'>
+                   <a id="toggle-all-docs" href="javascript:void(0)" title="collapse all docs">
+                       [<span class='inner'>&#x2212;</span>]
+                   </a>
+               </span><a class='srclink' href='../src/unshare/lib.rs.html#72-82' title='goto source code'>[src]</a></span></h1>
+<pre class='rust struct'>pub struct Command { /* fields omitted */ }</pre><div class='docblock'><p>Main class for running processes. Works in the spirit of builder pattern.</p>
+</div><h2 id='methods'>Methods</h2><h3 class='impl'><span class='in-band'><code>impl <a class="struct" href="../unshare/struct.Command.html" title="struct unshare::Command">Command</a></code></span><span class='out-of-band'><div class='ghost'></div><a class='srclink' href='../src/unshare/std_api.rs.html#19-156' title='goto source code'>[src]</a></span></h3>
+<div class='impl-items'><h4 id='method.new' class="method"><span id='new.v' class='invisible'><code>fn <a href='#method.new' class='fnname'>new</a>&lt;S:&nbsp;<a class="trait" href="https://doc.rust-lang.org/nightly/core/convert/trait.AsRef.html" title="trait core::convert::AsRef">AsRef</a>&lt;<a class="struct" href="https://doc.rust-lang.org/nightly/std/ffi/os_str/struct.OsStr.html" title="struct std::ffi::os_str::OsStr">OsStr</a>&gt;&gt;(program: S) -&gt; <a class="struct" href="../unshare/struct.Command.html" title="struct unshare::Command">Command</a></code></span></h4>
+<div class='docblock'><p>Constructs a new <code>Command</code> for launching the program at
+path <code>program</code>, with the following default configuration:</p>
+
+<ul>
+<li>No arguments to the program</li>
+<li>Inherit the current process&#39;s environment</li>
+<li>Inherit the current process&#39;s working directory</li>
+<li>Inherit stdin/stdout/stderr for <code>spawn</code> or <code>status</code>, but create pipes for <code>output</code></li>
+</ul>
+
+<p>Builder methods are provided to change these defaults and
+otherwise configure the process.</p>
+</div><h4 id='method.arg' class="method"><span id='arg.v' class='invisible'><code>fn <a href='#method.arg' class='fnname'>arg</a>&lt;S:&nbsp;<a class="trait" href="https://doc.rust-lang.org/nightly/core/convert/trait.AsRef.html" title="trait core::convert::AsRef">AsRef</a>&lt;<a class="struct" href="https://doc.rust-lang.org/nightly/std/ffi/os_str/struct.OsStr.html" title="struct std::ffi::os_str::OsStr">OsStr</a>&gt;&gt;(&amp;mut self, arg: S) -&gt; &amp;mut <a class="struct" href="../unshare/struct.Command.html" title="struct unshare::Command">Command</a></code></span></h4>
+<div class='docblock'><p>Add an argument to pass to the program.</p>
+</div><h4 id='method.args' class="method"><span id='args.v' class='invisible'><code>fn <a href='#method.args' class='fnname'>args</a>&lt;S:&nbsp;<a class="trait" href="https://doc.rust-lang.org/nightly/core/convert/trait.AsRef.html" title="trait core::convert::AsRef">AsRef</a>&lt;<a class="struct" href="https://doc.rust-lang.org/nightly/std/ffi/os_str/struct.OsStr.html" title="struct std::ffi::os_str::OsStr">OsStr</a>&gt;&gt;(&amp;mut self, args: <a class="primitive" href="https://doc.rust-lang.org/nightly/std/primitive.slice.html">&amp;[</a>S<a class="primitive" href="https://doc.rust-lang.org/nightly/std/primitive.slice.html">]</a>) -&gt; &amp;mut <a class="struct" href="../unshare/struct.Command.html" title="struct unshare::Command">Command</a></code></span></h4>
+<div class='docblock'><p>Add multiple arguments to pass to the program.</p>
+</div><h4 id='method.env' class="method"><span id='env.v' class='invisible'><code>fn <a href='#method.env' class='fnname'>env</a>&lt;K, V&gt;(&amp;mut self, key: K, val: V) -&gt; &amp;mut <a class="struct" href="../unshare/struct.Command.html" title="struct unshare::Command">Command</a> <span class="where fmt-newline">where<br>&nbsp;&nbsp;&nbsp;&nbsp;K: <a class="trait" href="https://doc.rust-lang.org/nightly/core/convert/trait.AsRef.html" title="trait core::convert::AsRef">AsRef</a>&lt;<a class="struct" href="https://doc.rust-lang.org/nightly/std/ffi/os_str/struct.OsStr.html" title="struct std::ffi::os_str::OsStr">OsStr</a>&gt;,<br>&nbsp;&nbsp;&nbsp;&nbsp;V: <a class="trait" href="https://doc.rust-lang.org/nightly/core/convert/trait.AsRef.html" title="trait core::convert::AsRef">AsRef</a>&lt;<a class="struct" href="https://doc.rust-lang.org/nightly/std/ffi/os_str/struct.OsStr.html" title="struct std::ffi::os_str::OsStr">OsStr</a>&gt;,&nbsp;</span></code></span></h4>
+<div class='docblock'><p>Inserts or updates an environment variable mapping.</p>
+</div><h4 id='method.env_remove' class="method"><span id='env_remove.v' class='invisible'><code>fn <a href='#method.env_remove' class='fnname'>env_remove</a>&lt;K:&nbsp;<a class="trait" href="https://doc.rust-lang.org/nightly/core/convert/trait.AsRef.html" title="trait core::convert::AsRef">AsRef</a>&lt;<a class="struct" href="https://doc.rust-lang.org/nightly/std/ffi/os_str/struct.OsStr.html" title="struct std::ffi::os_str::OsStr">OsStr</a>&gt;&gt;(&amp;mut self, key: K) -&gt; &amp;mut <a class="struct" href="../unshare/struct.Command.html" title="struct unshare::Command">Command</a></code></span></h4>
+<div class='docblock'><p>Removes an environment variable mapping.</p>
+</div><h4 id='method.env_clear' class="method"><span id='env_clear.v' class='invisible'><code>fn <a href='#method.env_clear' class='fnname'>env_clear</a>(&amp;mut self) -&gt; &amp;mut <a class="struct" href="../unshare/struct.Command.html" title="struct unshare::Command">Command</a></code></span></h4>
+<div class='docblock'><p>Clears the entire environment map for the child process.</p>
+</div><h4 id='method.current_dir' class="method"><span id='current_dir.v' class='invisible'><code>fn <a href='#method.current_dir' class='fnname'>current_dir</a>&lt;P:&nbsp;<a class="trait" href="https://doc.rust-lang.org/nightly/core/convert/trait.AsRef.html" title="trait core::convert::AsRef">AsRef</a>&lt;<a class="struct" href="https://doc.rust-lang.org/nightly/std/path/struct.Path.html" title="struct std::path::Path">Path</a>&gt;&gt;(&amp;mut self, dir: P) -&gt; &amp;mut <a class="struct" href="../unshare/struct.Command.html" title="struct unshare::Command">Command</a></code></span></h4>
+<div class='docblock'><p>Sets the working directory for the child process.</p>
+
+<p>Note: in case of <code>chroot</code> or <code>pivot_root</code> the working directory is
+always set to something inside the new root. Algorithm is following:</p>
+
+<ol>
+<li>If path is set to absolute path, current dir is this path <em>inside</em>
+the chroot</li>
+<li>Check if chroot dir is prefix of <code>env::current_dir()</code>. If it is
+set current directory to the suffix. Otherwise set current directory
+to the new root dir.</li>
+<li>If <code>current_dir</code> is specified (and relative) set working directory
+to the value (i.e. relative to the dir set in #2)</li>
+</ol>
+
+<p>The <code>pivot_root</code> is treated just the same as <code>chroot</code>. I.e. we will
+not try to set working directory inside the <code>old_root</code>, unless path
+inside is set explicitly by this method.</p>
+
+<p>At the end of the day, the <code>cmd.current_dir(env::current_dir())</code> is
+not no-op if using chroot/pivot_root.</p>
+</div><h4 id='method.stdin' class="method"><span id='stdin.v' class='invisible'><code>fn <a href='#method.stdin' class='fnname'>stdin</a>(&amp;mut self, cfg: <a class="enum" href="../unshare/enum.Stdio.html" title="enum unshare::Stdio">Stdio</a>) -&gt; &amp;mut <a class="struct" href="../unshare/struct.Command.html" title="struct unshare::Command">Command</a></code></span></h4>
+<div class='docblock'><p>Configuration for the child process&#39;s stdin handle (file descriptor 0).</p>
+</div><h4 id='method.stdout' class="method"><span id='stdout.v' class='invisible'><code>fn <a href='#method.stdout' class='fnname'>stdout</a>(&amp;mut self, cfg: <a class="enum" href="../unshare/enum.Stdio.html" title="enum unshare::Stdio">Stdio</a>) -&gt; &amp;mut <a class="struct" href="../unshare/struct.Command.html" title="struct unshare::Command">Command</a></code></span></h4>
+<div class='docblock'><p>Configuration for the child process&#39;s stdout handle (file descriptor 1).</p>
+</div><h4 id='method.stderr' class="method"><span id='stderr.v' class='invisible'><code>fn <a href='#method.stderr' class='fnname'>stderr</a>(&amp;mut self, cfg: <a class="enum" href="../unshare/enum.Stdio.html" title="enum unshare::Stdio">Stdio</a>) -&gt; &amp;mut <a class="struct" href="../unshare/struct.Command.html" title="struct unshare::Command">Command</a></code></span></h4>
+<div class='docblock'><p>Configuration for the child process&#39;s stderr handle (file descriptor 2).</p>
+</div><h4 id='method.uid' class="method"><span id='uid.v' class='invisible'><code>fn <a href='#method.uid' class='fnname'>uid</a>(&amp;mut self, id: <a class="type" href="../libc/unix/type.uid_t.html" title="type libc::unix::uid_t">uid_t</a>) -&gt; &amp;mut <a class="struct" href="../unshare/struct.Command.html" title="struct unshare::Command">Command</a></code></span></h4>
+<div class='docblock'><p>Set user id of the new process. Note that it works only for root
+process or if you also set up user namespace</p>
+</div><h4 id='method.gid' class="method"><span id='gid.v' class='invisible'><code>fn <a href='#method.gid' class='fnname'>gid</a>(&amp;mut self, id: <a class="type" href="../libc/unix/type.gid_t.html" title="type libc::unix::gid_t">gid_t</a>) -&gt; &amp;mut <a class="struct" href="../unshare/struct.Command.html" title="struct unshare::Command">Command</a></code></span></h4>
+<div class='docblock'><p>Set primary group id of the new process. Note that it works only for
+root process or if you also set up user namespace</p>
+</div><h4 id='method.groups' class="method"><span id='groups.v' class='invisible'><code>fn <a href='#method.groups' class='fnname'>groups</a>(&amp;mut self, ids: <a class="struct" href="https://doc.rust-lang.org/nightly/collections/vec/struct.Vec.html" title="struct collections::vec::Vec">Vec</a>&lt;<a class="type" href="../libc/unix/type.gid_t.html" title="type libc::unix::gid_t">gid_t</a>&gt;) -&gt; &amp;mut <a class="struct" href="../unshare/struct.Command.html" title="struct unshare::Command">Command</a></code></span></h4>
+<div class='docblock'><p>Set supplementary group ids. Note that it works only for root process
+or if you also set up user namespace</p>
+</div></div><h3 class='impl'><span class='in-band'><code>impl <a class="struct" href="../unshare/struct.Command.html" title="struct unshare::Command">Command</a></code></span><span class='out-of-band'><div class='ghost'></div><a class='srclink' href='../src/unshare/linux.rs.html#15-246' title='goto source code'>[src]</a></span></h3>
+<div class='impl-items'><h4 id='method.allow_daemonize' class="method"><span id='allow_daemonize.v' class='invisible'><code>fn <a href='#method.allow_daemonize' class='fnname'>allow_daemonize</a>(&amp;mut self) -&gt; &amp;mut <a class="struct" href="../unshare/struct.Command.html" title="struct unshare::Command">Command</a></code></span></h4>
+<div class='docblock'><p>Allow child process to daemonize. By default we run equivalent of
+<code>set_parent_death_signal(SIGKILL)</code>. See the <code>set_parent_death_signal</code>
+for better explanation.</p>
+</div><h4 id='method.set_parent_death_signal' class="method"><span id='set_parent_death_signal.v' class='invisible'><code>fn <a href='#method.set_parent_death_signal' class='fnname'>set_parent_death_signal</a>(&amp;mut self, sig: <a class="enum" href="../unshare/enum.Signal.html" title="enum unshare::Signal">Signal</a>) -&gt; &amp;mut <a class="struct" href="../unshare/struct.Command.html" title="struct unshare::Command">Command</a></code></span></h4>
+<div class='docblock'><p>Set a signal that is sent to a process when it&#39;s parent is dead.
+This is by default set to <code>SIGKILL</code>. And you should keep it that way
+unless you know what you are doing.</p>
+
+<p>Particularly you should consider the following choices:</p>
+
+<ol>
+<li><p>Instead of setting <code>PDEATHSIG</code> to some other signal, send signal
+yourself and wait until child gracefully finishes.</p></li>
+<li><p>Instead of daemonizing use <code>systemd</code>/<code>upstart</code>/whatever system
+init script to run your service</p></li>
+</ol>
+
+<p>Another issue with this option is that it works only with immediate
+child. To better control all descendant processes you may need the
+following:</p>
+
+<ol>
+<li><p>The <code>prctl(PR_SET_CHILD_SUBREAPER..)</code> in parent which allows to
+&quot;catch&quot; descendant processes.</p></li>
+<li><p>The pid namespaces</p></li>
+</ol>
+
+<p>The former is out of scope of this library. The latter works by
+<code>cmd.unshare(Namespace::Pid)</code>, but you may need to setup mount points
+and other important things (which are out of scope too).</p>
+
+<p>To reset this behavior use <code>allow_daemonize()</code>.</p>
+</div><h4 id='method.chroot_dir' class="method"><span id='chroot_dir.v' class='invisible'><code>fn <a href='#method.chroot_dir' class='fnname'>chroot_dir</a>&lt;P:&nbsp;<a class="trait" href="https://doc.rust-lang.org/nightly/core/convert/trait.AsRef.html" title="trait core::convert::AsRef">AsRef</a>&lt;<a class="struct" href="https://doc.rust-lang.org/nightly/std/path/struct.Path.html" title="struct std::path::Path">Path</a>&gt;&gt;(&amp;mut self, dir: P) -&gt; &amp;mut <a class="struct" href="../unshare/struct.Command.html" title="struct unshare::Command">Command</a></code></span></h4>
+<div class='docblock'><p>Set chroot dir. Only absolute path is supported</p>
+
+<p>This method has a non-standard security feature: even if current_dir
+is unspecified we set it to the directory inside the new root dir.
+see more details in the description of <code>Command::current_dir</code>.</p>
+
+<p>Note that if both chroot dir and pivot_root specified. The chroot dir
+is applied after pivot root. If chroot dir is relative it&#39;s relative
+to either suffix of the current directory with stripped off pivot dir
+or the pivot dir itself (if old workdir is not prefixed by pivot dir)</p>
+
+<h1 id='panics' class='section-header'><a href='#panics'>Panics</a></h1>
+<p>If directory is not absolute</p>
+</div><h4 id='method.pivot_root' class="method"><span id='pivot_root.v' class='invisible'><code>fn <a href='#method.pivot_root' class='fnname'>pivot_root</a>&lt;A:&nbsp;<a class="trait" href="https://doc.rust-lang.org/nightly/core/convert/trait.AsRef.html" title="trait core::convert::AsRef">AsRef</a>&lt;<a class="struct" href="https://doc.rust-lang.org/nightly/std/path/struct.Path.html" title="struct std::path::Path">Path</a>&gt;, B:&nbsp;<a class="trait" href="https://doc.rust-lang.org/nightly/core/convert/trait.AsRef.html" title="trait core::convert::AsRef">AsRef</a>&lt;<a class="struct" href="https://doc.rust-lang.org/nightly/std/path/struct.Path.html" title="struct std::path::Path">Path</a>&gt;&gt;(<br>&nbsp;&nbsp;&nbsp;&nbsp;&amp;mut self, <br>&nbsp;&nbsp;&nbsp;&nbsp;new_root: A, <br>&nbsp;&nbsp;&nbsp;&nbsp;put_old: B, <br>&nbsp;&nbsp;&nbsp;&nbsp;unmount: <a class="primitive" href="https://doc.rust-lang.org/nightly/std/primitive.bool.html">bool</a><br>) -&gt; &amp;mut <a class="struct" href="../unshare/struct.Command.html" title="struct unshare::Command">Command</a></code></span></h4>
+<div class='docblock'><p>Moves the root of the file system to the directory <code>put_old</code> and
+makes <code>new_root</code> the new root file system. Also it&#39;s optionally
+unmount <code>new_root</code> mount point after moving root (but it must exist
+anyway).</p>
+
+<p>The documentation says that <code>put_old</code> must be underneath the
+<code>new_root</code>.  Currently we have a restriction that both must be absolute
+and <code>new_root</code> be prefix of <code>put_old</code>, but we may lift it later.</p>
+
+<p><strong>Warning</strong> if you don&#39;t unshare the mount namespace you will get
+moved filesystem root for <em>all processes running in that namespace</em>
+including parent (currently running) process itself. If you don&#39;t
+run equivalent to <code>mount --make-private</code> for the old root filesystem
+and set <code>unmount</code> to true, you may get unmounted filesystem for
+running processes too.</p>
+
+<p>See <code>man 2 pivot</code> for further details</p>
+
+<p>Note that if both chroot dir and pivot_root specified. The chroot dir
+is applied after pivot root.</p>
+
+<h1 id='panics-1' class='section-header'><a href='#panics-1'>Panics</a></h1>
+<p>Panics if either path is not absolute or new_root is not a prefix of
+put_old.</p>
+</div><h4 id='method.unshare' class="method"><span id='unshare.v' class='invisible'><code>fn <a href='#method.unshare' class='fnname'>unshare</a>&lt;I:&nbsp;<a class="trait" href="https://doc.rust-lang.org/nightly/core/iter/traits/trait.IntoIterator.html" title="trait core::iter::traits::IntoIterator">IntoIterator</a>&lt;Item = <a class="enum" href="../unshare/enum.Namespace.html" title="enum unshare::Namespace">Namespace</a>&gt;&gt;(<br>&nbsp;&nbsp;&nbsp;&nbsp;&amp;mut self, <br>&nbsp;&nbsp;&nbsp;&nbsp;iter: I<br>) -&gt; &amp;mut <a class="struct" href="../unshare/struct.Command.html" title="struct unshare::Command">Command</a></code></span></h4>
+<div class='docblock'><p>Unshare given namespaces</p>
+
+<p>Note: each namespace have some consequences on how new process will
+work, some of them are described in the <code>Namespace</code> type documentation.</p>
+</div><h4 id='method.set_namespace' class="method"><span id='set_namespace.v' class='invisible'><code>fn <a href='#method.set_namespace' class='fnname'>set_namespace</a>&lt;F:&nbsp;<a class="trait" href="https://doc.rust-lang.org/nightly/std/sys/imp/ext/io/trait.AsRawFd.html" title="trait std::sys::imp::ext::io::AsRawFd">AsRawFd</a>&gt;(<br>&nbsp;&nbsp;&nbsp;&nbsp;&amp;mut self, <br>&nbsp;&nbsp;&nbsp;&nbsp;file: &amp;F, <br>&nbsp;&nbsp;&nbsp;&nbsp;ns: <a class="enum" href="../unshare/enum.Namespace.html" title="enum unshare::Namespace">Namespace</a><br>) -&gt; <a class="type" href="https://doc.rust-lang.org/nightly/std/io/error/type.Result.html" title="type std::io::error::Result">Result</a>&lt;&amp;mut <a class="struct" href="../unshare/struct.Command.html" title="struct unshare::Command">Command</a>&gt;</code></span></h4>
+<div class='docblock'><p>Reassociate child process with a namespace specified by a file
+descriptor</p>
+
+<p><code>file</code> argument is an open file referring to a namespace</p>
+
+<p>&#39;ns&#39; is a namespace type</p>
+
+<p>See <code>man 2 setns</code> for further details</p>
+
+<p>Note: using <code>unshare</code> and <code>setns</code> for the same namespace is meaningless.</p>
+</div><h4 id='method.set_id_maps' class="method"><span id='set_id_maps.v' class='invisible'><code>fn <a href='#method.set_id_maps' class='fnname'>set_id_maps</a>(<br>&nbsp;&nbsp;&nbsp;&nbsp;&amp;mut self, <br>&nbsp;&nbsp;&nbsp;&nbsp;uid_map: <a class="struct" href="https://doc.rust-lang.org/nightly/collections/vec/struct.Vec.html" title="struct collections::vec::Vec">Vec</a>&lt;<a class="struct" href="../unshare/struct.UidMap.html" title="struct unshare::UidMap">UidMap</a>&gt;, <br>&nbsp;&nbsp;&nbsp;&nbsp;gid_map: <a class="struct" href="https://doc.rust-lang.org/nightly/collections/vec/struct.Vec.html" title="struct collections::vec::Vec">Vec</a>&lt;<a class="struct" href="../unshare/struct.GidMap.html" title="struct unshare::GidMap">GidMap</a>&gt;<br>) -&gt; &amp;mut <a class="struct" href="../unshare/struct.Command.html" title="struct unshare::Command">Command</a></code></span></h4>
+<div class='docblock'><p>Sets user id and group id mappings for new process</p>
+
+<p>This automatically enables <code>User</code> namespace. You should also set <code>uid</code>
+and <code>gid</code> with respective methods for the new process.</p>
+
+<p>Note there are basically two ways to enable id maps:</p>
+
+<ol>
+<li>Write them directly</li>
+<li>Invoke a <code>newuidmap</code>, <code>newgidmap</code> commands</li>
+</ol>
+
+<p>First option works either if current process is root or if resulting
+map only contains current user in the mapping.</p>
+
+<p>The library will not try to guess the behavior. By default it will
+write directly. You need to call the <code>set_id_map_commands</code> when you
+want non-default behavior.</p>
+
+<p>See <code>man 7 user_namespaces</code> for more info</p>
+</div><h4 id='method.set_id_map_commands' class="method"><span id='set_id_map_commands.v' class='invisible'><code>fn <a href='#method.set_id_map_commands' class='fnname'>set_id_map_commands</a>&lt;A:&nbsp;<a class="trait" href="https://doc.rust-lang.org/nightly/core/convert/trait.AsRef.html" title="trait core::convert::AsRef">AsRef</a>&lt;<a class="struct" href="https://doc.rust-lang.org/nightly/std/path/struct.Path.html" title="struct std::path::Path">Path</a>&gt;, B:&nbsp;<a class="trait" href="https://doc.rust-lang.org/nightly/core/convert/trait.AsRef.html" title="trait core::convert::AsRef">AsRef</a>&lt;<a class="struct" href="https://doc.rust-lang.org/nightly/std/path/struct.Path.html" title="struct std::path::Path">Path</a>&gt;&gt;(<br>&nbsp;&nbsp;&nbsp;&nbsp;&amp;mut self, <br>&nbsp;&nbsp;&nbsp;&nbsp;newuidmap: A, <br>&nbsp;&nbsp;&nbsp;&nbsp;newgidmap: B<br>) -&gt; &amp;mut <a class="struct" href="../unshare/struct.Command.html" title="struct unshare::Command">Command</a></code></span></h4>
+<div class='docblock'><p>Set path to command-line utilities for writing uid/gid maps</p>
+
+<p>The utilities provided my obey same interface as <code>newuidmap</code> and
+<code>newgidmap</code> from <code>shadow</code> (or sometimes <code>uidmap</code>) package. To get it
+working you usually need to setup <code>/etc/subuid</code> and <code>/etc/subgid</code>
+files.</p>
+
+<p>See <code>man 1 newuidmap</code>, <code>man 1 newgidmap</code> for details</p>
+
+<p>This method is no-op unless <code>set_id_maps</code> is called.</p>
+</div><h4 id='method.keep_sigmask' class="method"><span id='keep_sigmask.v' class='invisible'><code>fn <a href='#method.keep_sigmask' class='fnname'>keep_sigmask</a>(&amp;mut self) -&gt; &amp;mut <a class="struct" href="../unshare/struct.Command.html" title="struct unshare::Command">Command</a></code></span></h4>
+<div class='docblock'><p>Keep signal mask intact after executing child, keeps also ignored
+signals</p>
+
+<p>By default signal mask is empty and all signals are reset to the
+<code>SIG_DFL</code> value right before <code>execve()</code> syscall.</p>
+
+<p>This is only useful if started process is aware of the issue and sets
+sigmasks to some reasonable value. When used wisely it may avoid some
+race conditions when signal is sent after child is cloned but before
+child have been able to establish it&#39;s state.</p>
+</div><h4 id='method.arg0' class="method"><span id='arg0.v' class='invisible'><code>fn <a href='#method.arg0' class='fnname'>arg0</a>&lt;S:&nbsp;<a class="trait" href="https://doc.rust-lang.org/nightly/core/convert/trait.AsRef.html" title="trait core::convert::AsRef">AsRef</a>&lt;<a class="struct" href="https://doc.rust-lang.org/nightly/std/ffi/os_str/struct.OsStr.html" title="struct std::ffi::os_str::OsStr">OsStr</a>&gt;&gt;(&amp;mut self, arg: S) -&gt; &amp;mut <a class="struct" href="../unshare/struct.Command.html" title="struct unshare::Command">Command</a></code></span></h4>
+<div class='docblock'><p>Set the argument zero for the process</p>
+
+<p>By default argument zero is same as path to the program to run. You
+may set it to a short name of the command or to something else to
+pretend there is a symlink to a program (for example to run <code>gzip</code> as
+<code>gunzip</code>).</p>
+</div><h4 id='method.make_group_leader' class="method"><span id='make_group_leader.v' class='invisible'><code>fn <a href='#method.make_group_leader' class='fnname'>make_group_leader</a>(&amp;mut self, make_group_leader: <a class="primitive" href="https://doc.rust-lang.org/nightly/std/primitive.bool.html">bool</a>) -&gt; &amp;mut <a class="struct" href="../unshare/struct.Command.html" title="struct unshare::Command">Command</a></code></span></h4>
+<div class='docblock'><p>Makes child process a group leader</p>
+
+<p>If child process is being launched as a foreground job,
+the child process group needs to be put into the foreground on
+the controlling terminal using <code>tcsetpgrp</code>. To request status
+information from stopped child process you should call <code>waitpid</code> with
+<code>WUNTRACED</code> flag. And then check status with <code>WIFSTOPPED</code> macro.
+After giving child process group access to the controlling terminal
+you should send the SIGCONT signal to the child process group.</p>
+</div></div><h3 class='impl'><span class='in-band'><code>impl <a class="struct" href="../unshare/struct.Command.html" title="struct unshare::Command">Command</a></code></span><span class='out-of-band'><div class='ghost'></div><a class='srclink' href='../src/unshare/fds.rs.html#21-110' title='goto source code'>[src]</a></span></h3>
+<div class='impl-items'><h4 id='method.file_descriptor' class="method"><span id='file_descriptor.v' class='invisible'><code>fn <a href='#method.file_descriptor' class='fnname'>file_descriptor</a>(&amp;mut self, target_fd: <a class="type" href="https://doc.rust-lang.org/nightly/std/sys/imp/ext/io/type.RawFd.html" title="type std::sys::imp::ext::io::RawFd">RawFd</a>, cfg: <a class="enum" href="../unshare/enum.Fd.html" title="enum unshare::Fd">Fd</a>) -&gt; &amp;mut <a class="struct" href="../unshare/struct.Command.html" title="struct unshare::Command">Command</a></code></span></h4>
+<div class='docblock'><p>Configuration for any other file descriptor (panics for fds &lt; 3) use
+stdin/stdout/stderr for them</p>
+
+<p>Rust creates file descriptors with CLOEXEC flag by default, so no
+descriptors are inherited except ones specifically configured here
+(and stdio which is inherited by default)</p>
+</div><h4 id='method.close_fds' class="method"><span id='close_fds.v' class='invisible'><code>fn <a href='#method.close_fds' class='fnname'>close_fds</a>&lt;A:&nbsp;<a class="trait" href="https://doc.rust-lang.org/nightly/core/convert/trait.Into.html" title="trait core::convert::Into">Into</a>&lt;AnyRange&gt;&gt;(&amp;mut self, range: A) -&gt; &amp;mut <a class="struct" href="../unshare/struct.Command.html" title="struct unshare::Command">Command</a></code></span></h4>
+<div class='docblock'><p>Close a range of file descriptors as soon as process forks</p>
+
+<p>Subsequent calls to this method add additional range. Use <code>reset_fds</code>
+to remove all the ranges.</p>
+
+<p>File descriptors that never closed are:</p>
+
+<ul>
+<li>the stdio file descriptors</li>
+<li>descriptors configured using <code>file_descriptor</code>/<code>file_descriptor_raw</code>
+methods</li>
+<li>internal file descriptors used for parent child notification by
+unshare crate itself (they are guaranteed to have CLOEXEC)</li>
+</ul>
+
+<p>You should avoid this method if possilble and rely on CLOEXEC to
+do the work. But sometimes it&#39;s inevitable:</p>
+
+<ol>
+<li>If you need to ensure closing descriptors for security reasons</li>
+<li>If you have some bad library out of your control which doesn&#39;t
+set CLOEXEC on owned the file descriptors</li>
+</ol>
+
+<p>Ranges obey the following rules:</p>
+
+<ul>
+<li>Range like <code>..12</code> is transformed into <code>3..12</code></li>
+<li>Range with undefined upper bound <code>3..</code> is capped at current ulimit
+for file descriptors <strong>at the moment of calling the method</strong></li>
+<li>The full range <code>..</code> is an alias to <code>3..</code></li>
+<li>Multiple overlapping ranges are closed multiple times which is
+both harmless and useless</li>
+</ul>
+
+<h1 id='panics-2' class='section-header'><a href='#panics-2'>Panics</a></h1>
+<p>Panics when can&#39;t get rlimit for range without upper bound. Should
+never happen in practice.</p>
+
+<p>Panics when lower range of fd is &lt; 3 (stdio file descriptors)</p>
+</div><h4 id='method.reset_fds' class="method"><span id='reset_fds.v' class='invisible'><code>fn <a href='#method.reset_fds' class='fnname'>reset_fds</a>(&amp;mut self) -&gt; &amp;mut <a class="struct" href="../unshare/struct.Command.html" title="struct unshare::Command">Command</a></code></span></h4>
+<div class='docblock'><p>Reset file descriptor including stdio to the initial state</p>
+
+<p>Initial state is inherit all the stdio and do nothing to other fds.</p>
+</div></div><h3 class='impl'><span class='in-band'><code>impl <a class="struct" href="../unshare/struct.Command.html" title="struct unshare::Command">Command</a></code></span><span class='out-of-band'><div class='ghost'></div><a class='srclink' href='../src/unshare/run.rs.html#135-331' title='goto source code'>[src]</a></span></h3>
+<div class='impl-items'><h4 id='method.status' class="method"><span id='status.v' class='invisible'><code>fn <a href='#method.status' class='fnname'>status</a>(&amp;mut self) -&gt; <a class="enum" href="https://doc.rust-lang.org/nightly/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a class="enum" href="../unshare/enum.ExitStatus.html" title="enum unshare::ExitStatus">ExitStatus</a>, <a class="enum" href="../unshare/enum.Error.html" title="enum unshare::Error">Error</a>&gt;</code></span></h4>
+<div class='docblock'><p>Run the command and return exit status</p>
+</div><h4 id='method.spawn' class="method"><span id='spawn.v' class='invisible'><code>fn <a href='#method.spawn' class='fnname'>spawn</a>(&amp;mut self) -&gt; <a class="enum" href="https://doc.rust-lang.org/nightly/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a class="struct" href="../unshare/struct.Child.html" title="struct unshare::Child">Child</a>, <a class="enum" href="../unshare/enum.Error.html" title="enum unshare::Error">Error</a>&gt;</code></span></h4>
+<div class='docblock'><p>Spawn the command and return a handle that can be waited for</p>
+</div></div><h3 class='impl'><span class='in-band'><code>impl <a class="struct" href="../unshare/struct.Command.html" title="struct unshare::Command">Command</a></code></span><span class='out-of-band'><div class='ghost'></div><a class='srclink' href='../src/unshare/debug.rs.html#152-157' title='goto source code'>[src]</a></span></h3>
+<div class='impl-items'><h4 id='method.display' class="method"><span id='display.v' class='invisible'><code>fn <a href='#method.display' class='fnname'>display</a>&lt;'a&gt;(&amp;'a self, style: &amp;'a <a class="struct" href="../unshare/struct.Style.html" title="struct unshare::Style">Style</a>) -&gt; <a class="struct" href="../unshare/struct.Printer.html" title="struct unshare::Printer">Printer</a>&lt;'a&gt;</code></span></h4>
+<div class='docblock'><p>Returns the object that implements Display</p>
+</div></div><h2 id='implementations'>Trait Implementations</h2><h3 class='impl'><span class='in-band'><code>impl <a class="trait" href="https://doc.rust-lang.org/nightly/core/fmt/trait.Debug.html" title="trait core::fmt::Debug">Debug</a> for <a class="struct" href="../unshare/struct.Command.html" title="struct unshare::Command">Command</a></code></span><span class='out-of-band'><div class='ghost'></div><a class='srclink' href='../src/unshare/debug.rs.html#159-163' title='goto source code'>[src]</a></span></h3>
+<div class='impl-items'><h4 id='method.fmt' class="method"><span id='fmt.v' class='invisible'><code>fn <a href='https://doc.rust-lang.org/nightly/core/fmt/trait.Debug.html#tymethod.fmt' class='fnname'>fmt</a>(&amp;self, fmt: &amp;mut <a class="struct" href="https://doc.rust-lang.org/nightly/core/fmt/struct.Formatter.html" title="struct core::fmt::Formatter">Formatter</a>) -&gt; <a class="type" href="https://doc.rust-lang.org/nightly/core/fmt/type.Result.html" title="type core::fmt::Result">Result</a></code></span></h4>
+<div class='docblock'><p>Formats the value using the given formatter.</p>
+</div></div></section>
+    <section id='search' class="content hidden"></section>
+
+    <section class="footer"></section>
+
+    <aside id="help" class="hidden">
+        <div>
+            <h1 class="hidden">Help</h1>
+
+            <div class="shortcuts">
+                <h2>Keyboard Shortcuts</h2>
+
+                <dl>
+                    <dt>?</dt>
+                    <dd>Show this help dialog</dd>
+                    <dt>S</dt>
+                    <dd>Focus the search field</dd>
+                    <dt>&larrb;</dt>
+                    <dd>Move up in search results</dd>
+                    <dt>&rarrb;</dt>
+                    <dd>Move down in search results</dd>
+                    <dt>&#9166;</dt>
+                    <dd>Go to active search result</dd>
+                    <dt>+</dt>
+                    <dd>Collapse/expand all sections</dd>
+                </dl>
+            </div>
+
+            <div class="infos">
+                <h2>Search Tricks</h2>
+
+                <p>
+                    Prefix searches with a type followed by a colon (e.g.
+                    <code>fn:</code>) to restrict the search to a given type.
+                </p>
+
+                <p>
+                    Accepted types are: <code>fn</code>, <code>mod</code>,
+                    <code>struct</code>, <code>enum</code>,
+                    <code>trait</code>, <code>type</code>, <code>macro</code>,
+                    and <code>const</code>.
+                </p>
+
+                <p>
+                    Search functions by type signature (e.g.
+                    <code>vec -> usize</code> or <code>* -> vec</code>)
+                </p>
+            </div>
+        </div>
+    </aside>
+
+    
+
+    <script>
+        window.rootPath = "../";
+        window.currentCrate = "unshare";
+    </script>
+    <script src="../main.js"></script>
+    <script defer src="../search-index.js"></script>
+</body>
+</html>

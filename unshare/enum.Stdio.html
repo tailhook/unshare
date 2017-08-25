@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="generator" content="rustdoc">
+    <meta name="description" content="API documentation for the Rust `Stdio` enum in crate `unshare`.">
+    <meta name="keywords" content="rust, rustlang, rust-lang, Stdio">
+
+    <title>unshare::Stdio - Rust</title>
+
+    <link rel="stylesheet" type="text/css" href="../normalize.css">
+    <link rel="stylesheet" type="text/css" href="../rustdoc.css">
+    <link rel="stylesheet" type="text/css" href="../main.css">
+    
+
+    
+    
+</head>
+<body class="rustdoc enum">
+    <!--[if lte IE 8]>
+    <div class="warning">
+        This old browser is unsupported and will most likely display funky
+        things.
+    </div>
+    <![endif]-->
+
+    
+
+    <nav class="sidebar">
+        
+        <p class='location'>Enum Stdio</p><div class="block items"><ul><li><a href="#variants">Variants</a></li><li><a href="#methods">Methods</a></li></ul></div><p class='location'><a href='index.html'>unshare</a></p><script>window.sidebarCurrent = {name: 'Stdio', ty: 'enum', relpath: ''};</script><script defer src="sidebar-items.js"></script>
+    </nav>
+
+    <nav class="sub">
+        <form class="search-form js-only">
+            <div class="search-container">
+                <input class="search-input" name="search"
+                       autocomplete="off"
+                       placeholder="Click or press ‘S’ to search, ‘?’ for more options…"
+                       type="search">
+            </div>
+        </form>
+    </nav>
+
+    <section id='main' class="content">
+<h1 class='fqn'><span class='in-band'>Enum <a href='index.html'>unshare</a>::<wbr><a class="enum" href=''>Stdio</a></span><span class='out-of-band'><span id='render-detail'>
+                   <a id="toggle-all-docs" href="javascript:void(0)" title="collapse all docs">
+                       [<span class='inner'>&#x2212;</span>]
+                   </a>
+               </span><a class='srclink' href='../src/unshare/stdio.rs.html#13-22' title='goto source code'>[src]</a></span></h1>
+<pre class='rust enum'>pub enum Stdio {
+    Pipe,
+    Inherit,
+    Null,
+    Fd(Closing),
+}</pre><div class='docblock'><p>An enumeration that is used to configure stdio file descritors</p>
+
+<p>The enumeration members might be non-stable, it&#39;s better to use
+one of the constructors to create an instance</p>
+</div><h2 id='variants' class='variants'>Variants</h2>
+<span id='variant.Pipe' class='variant'><span id='Pipe.v' class='invisible'><code>Pipe</code></span></span><div class='docblock'><p>This fd will use pipe to/from the appliation</p>
+</div><span id='variant.Inherit' class='variant'><span id='Inherit.v' class='invisible'><code>Inherit</code></span></span><div class='docblock'><p>This fd will be inherited from the parent application</p>
+</div><span id='variant.Null' class='variant'><span id='Null.v' class='invisible'><code>Null</code></span></span><div class='docblock'><p>This fd will open /dev/null in read or write mode</p>
+</div><span id='variant.Fd' class='variant'><span id='Fd.v' class='invisible'><code>Fd(Closing)</code></span></span><div class='docblock'><p>This is fd passed by application (and closed by <code>unshare</code>)</p>
+</div><h2 id='methods'>Methods</h2><h3 class='impl'><span class='in-band'><code>impl <a class="enum" href="../unshare/enum.Stdio.html" title="enum unshare::Stdio">Stdio</a></code></span><span class='out-of-band'><div class='ghost'></div><a class='srclink' href='../src/unshare/stdio.rs.html#63-94' title='goto source code'>[src]</a></span></h3>
+<div class='impl-items'><h4 id='method.piped' class="method"><span id='piped.v' class='invisible'><code>fn <a href='#method.piped' class='fnname'>piped</a>() -&gt; <a class="enum" href="../unshare/enum.Stdio.html" title="enum unshare::Stdio">Stdio</a></code></span></h4>
+<div class='docblock'><p>Pipe is created for child process</p>
+</div><h4 id='method.inherit' class="method"><span id='inherit.v' class='invisible'><code>fn <a href='#method.inherit' class='fnname'>inherit</a>() -&gt; <a class="enum" href="../unshare/enum.Stdio.html" title="enum unshare::Stdio">Stdio</a></code></span></h4>
+<div class='docblock'><p>The child inherits file descriptor from the parent process</p>
+</div><h4 id='method.null' class="method"><span id='null.v' class='invisible'><code>fn <a href='#method.null' class='fnname'>null</a>() -&gt; <a class="enum" href="../unshare/enum.Stdio.html" title="enum unshare::Stdio">Stdio</a></code></span></h4>
+<div class='docblock'><p>Stream is attached to <code>/dev/null</code></p>
+</div><h4 id='method.to_fd' class="method"><span id='to_fd.v' class='invisible'><code>fn <a href='#method.to_fd' class='fnname'>to_fd</a>(self, write: <a class="primitive" href="https://doc.rust-lang.org/nightly/std/primitive.bool.html">bool</a>) -&gt; <a class="enum" href="../unshare/enum.Fd.html" title="enum unshare::Fd">Fd</a></code></span></h4>
+<div class='docblock'><p>Converts stdio definition to file descriptor definition
+(mostly needed internally)</p>
+</div><h4 id='method.dup_file' class="method"><span id='dup_file.v' class='invisible'><code>fn <a href='#method.dup_file' class='fnname'>dup_file</a>&lt;F:&nbsp;<a class="trait" href="https://doc.rust-lang.org/nightly/std/sys/imp/ext/io/trait.AsRawFd.html" title="trait std::sys::imp::ext::io::AsRawFd">AsRawFd</a>&gt;(file: &amp;F) -&gt; <a class="type" href="https://doc.rust-lang.org/nightly/std/io/error/type.Result.html" title="type std::io::error::Result">Result</a>&lt;<a class="enum" href="../unshare/enum.Stdio.html" title="enum unshare::Stdio">Stdio</a>&gt;</code></span></h4>
+<div class='docblock'><p>A simpler helper method for <code>from_raw_fd</code>, that does dup of file
+descriptor, so is actually safe to use (but can fail)</p>
+</div><h4 id='method.from_file' class="method"><span id='from_file.v' class='invisible'><code>fn <a href='#method.from_file' class='fnname'>from_file</a>&lt;F:&nbsp;<a class="trait" href="https://doc.rust-lang.org/nightly/std/sys/imp/ext/io/trait.IntoRawFd.html" title="trait std::sys::imp::ext::io::IntoRawFd">IntoRawFd</a>&gt;(file: F) -&gt; <a class="enum" href="../unshare/enum.Stdio.html" title="enum unshare::Stdio">Stdio</a></code></span></h4>
+<div class='docblock'><p>A simpler helper method for <code>from_raw_fd</code>, that consumes file</p>
+
+<p>Note: we assume that file descriptor <strong>already has</strong> the <code>CLOEXEC</code>
+flag. This is by default for all files opened by rust.</p>
+</div></div></section>
+    <section id='search' class="content hidden"></section>
+
+    <section class="footer"></section>
+
+    <aside id="help" class="hidden">
+        <div>
+            <h1 class="hidden">Help</h1>
+
+            <div class="shortcuts">
+                <h2>Keyboard Shortcuts</h2>
+
+                <dl>
+                    <dt>?</dt>
+                    <dd>Show this help dialog</dd>
+                    <dt>S</dt>
+                    <dd>Focus the search field</dd>
+                    <dt>&larrb;</dt>
+                    <dd>Move up in search results</dd>
+                    <dt>&rarrb;</dt>
+                    <dd>Move down in search results</dd>
+                    <dt>&#9166;</dt>
+                    <dd>Go to active search result</dd>
+                    <dt>+</dt>
+                    <dd>Collapse/expand all sections</dd>
+                </dl>
+            </div>
+
+            <div class="infos">
+                <h2>Search Tricks</h2>
+
+                <p>
+                    Prefix searches with a type followed by a colon (e.g.
+                    <code>fn:</code>) to restrict the search to a given type.
+                </p>
+
+                <p>
+                    Accepted types are: <code>fn</code>, <code>mod</code>,
+                    <code>struct</code>, <code>enum</code>,
+                    <code>trait</code>, <code>type</code>, <code>macro</code>,
+                    and <code>const</code>.
+                </p>
+
+                <p>
+                    Search functions by type signature (e.g.
+                    <code>vec -> usize</code> or <code>* -> vec</code>)
+                </p>
+            </div>
+        </div>
+    </aside>
+
+    
+
+    <script>
+        window.rootPath = "../";
+        window.currentCrate = "unshare";
+    </script>
+    <script src="../main.js"></script>
+    <script defer src="../search-index.js"></script>
+</body>
+</html>

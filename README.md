@@ -1,20 +1,22 @@
-============
 Rust Unshare
 ============
 
-:Status: 90% feature-complete, works in production in lithos_ and powers vagga_
-:Documentation: http://tailhook.github.io/unshare/
+*Status:* 90% feature-complete, works in production in [lithos][1] and powers [vagga][2]
+
+[Github](https://github.com/tailhook/unshare) |
+[Documentaion](http://docs.rs/unshare) |
+[Crate](https://crates.io/crates/unshare)
 
 Unshare is a low-level library to create linux containers.
 
 It contains the following:
 
-* Process creation interface similar to ``std::process::Command``
+* Process creation interface similar to `std::process::Command`
 * Unsharing arbitrary linux namespaces
-* Ability to change root (chroot/pivot_root), uid, gid, gid_map
+* Ability to change root (`chroot/pivot_root`), `uid`, `gid`, `gid_map`
 * Some signal mask handling (especially for new processes)
 * Forwarding file descriptors and other unixy stuff (sessions, terminals)
-* Setting few important prctl flags (PR_SET_PDEATHSIG)
+* Setting few important prctl flags (`PR_SET_PDEATHSIG`)
 * Runs both as root user and as unprivileged user
 
 Not implemeneted yet:
@@ -26,7 +28,7 @@ The following is considered:
 
 * Capture input (should be, because part of ``std::process`` interface)
 * Pseudo tty creation for child
-* The ``unshare`` and ``setns``
+* The `unshare` and `setns`
 
 The following is out of scope:
 
@@ -35,11 +37,10 @@ The following is out of scope:
 * in-container and out of container supervision
 * handing child signals
 
-.. _lithos: http://lithos.readthedocs.org
-.. _vagga: http://vagga.readthedocs.org
+[1]: http://lithos.readthedocs.org
+[2]: http://vagga.readthedocs.org
 
 
-=======
 License
 =======
 
@@ -50,7 +51,6 @@ Licensed under either of
 
 at your option.
 
-------------
 Contribution
 ------------
 

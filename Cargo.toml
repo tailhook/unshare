@@ -4,10 +4,11 @@ description = """
     The low-level interface for linux namespaces (containers)
 """
 license = "MIT/Apache-2.0"
-readme = "README.rst"
+readme = "README.md"
 keywords = ["linux", "container", "namespace", "docker", "process"]
-homepage = "http://github.com/tailhook/unshare"
-documentation = "http://tailhook.github.io/unshare/"
+homepage = "https://github.com/tailhook/unshare"
+documentation = "https://docs.rs/unshare"
+categories = ["os::unix-apis"]
 version = "0.1.15"
 authors = ["paul@colomiets.name"]
 

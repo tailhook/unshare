@@ -57,8 +57,8 @@ pub unsafe fn child_after_clone(child: &ChildInfo) -> ! {
             }
         } else if rc < 0 {
             let errno = nix::errno::errno();
-            if errno == nix::errno::EINTR as i32 ||
-               errno == nix::errno::EAGAIN as i32
+            if errno == libc::EINTR as i32 ||
+               errno == libc::EAGAIN as i32
             {
                     continue;
             } else {

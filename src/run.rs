@@ -10,9 +10,9 @@ use std::collections::HashMap;
 
 use libc::{c_char, close};
 use nix;
-use nix::errno::EINTR;
-use nix::fcntl::{fcntl, FcntlArg};
-use nix::fcntl::{open, O_CLOEXEC, O_RDONLY, O_WRONLY};
+use nix::errno::Errno::EINTR;
+use nix::fcntl::{fcntl, FcntlArg, open};
+use nix::fcntl::OFlag;
 use nix::sched::{clone, CloneFlags};
 use nix::sys::signal::{SIGKILL, SIGCHLD, kill};
 use nix::sys::stat::Mode;
@@ -100,7 +100,8 @@ fn prepare_descriptors(fds: &HashMap<RawFd, Fd>)
             &Fd::ReadNull => {
                 // Need to keep fd with cloexec, until we are in child
                 let fd = try!(result(Err::CreatePipe,
-                    open(Path::new("/dev/null"), O_CLOEXEC|O_RDONLY,
+                    open(Path::new("/dev/null"),
+                         OFlag::O_CLOEXEC|OFlag::O_RDONLY,
                          Mode::empty())));
                 guards.push(Closing::new(fd));
                 fd
@@ -108,7 +109,8 @@ fn prepare_descriptors(fds: &HashMap<RawFd, Fd>)
             &Fd::WriteNull => {
                 // Need to keep fd with cloexec, until we are in child
                 let fd = try!(result(Err::CreatePipe,
-                    open(Path::new("/dev/null"), O_CLOEXEC|O_WRONLY,
+                    open(Path::new("/dev/null"),
+                         OFlag::O_CLOEXEC|OFlag::O_WRONLY,
                          Mode::empty())));
                 guards.push(Closing::new(fd));
                 fd

@@ -1,4 +1,4 @@
-use nix::sched as consts;
+use nix::sched::CloneFlags;
 
 
 /// Namespace name to unshare
@@ -70,14 +70,14 @@ pub enum Namespace {
 
 /// Convert namespace to a clone flag passed to syscalls
 // TODO(tailhook) should this method be private?
-pub fn to_clone_flag(ns: Namespace) -> consts::CloneFlags {
+pub fn to_clone_flag(ns: Namespace) -> CloneFlags {
     match ns {
-        Namespace::Mount => consts::CLONE_NEWNS,
-        Namespace::Uts => consts::CLONE_NEWUTS,
-        Namespace::Ipc => consts::CLONE_NEWIPC,
-        Namespace::User => consts::CLONE_NEWUSER,
-        Namespace::Pid => consts::CLONE_NEWPID,
-        Namespace::Net => consts::CLONE_NEWNET,
-        Namespace::Cgroup => consts::CLONE_NEWCGROUP,
+        Namespace::Mount => CloneFlags::CLONE_NEWNS,
+        Namespace::Uts => CloneFlags::CLONE_NEWUTS,
+        Namespace::Ipc => CloneFlags::CLONE_NEWIPC,
+        Namespace::User => CloneFlags::CLONE_NEWUSER,
+        Namespace::Pid => CloneFlags::CLONE_NEWPID,
+        Namespace::Net => CloneFlags::CLONE_NEWNET,
+        Namespace::Cgroup => CloneFlags::CLONE_NEWCGROUP,
     }
 }

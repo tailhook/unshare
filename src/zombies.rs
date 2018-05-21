@@ -1,8 +1,9 @@
 use std::marker::PhantomData;
 
 use libc::pid_t;
-use nix::sys::wait::{waitpid, WNOHANG, WUNTRACED, WCONTINUED};
-use nix::errno::{EINTR, ECHILD};
+use nix::sys::wait::{waitpid};
+use nix::sys::wait::WaitPidFlag;
+use nix::errno::Errno::{EINTR, ECHILD};
 use nix::Error;
 
 use {ExitStatus, Signal};
@@ -19,11 +20,11 @@ impl Iterator for ZombieIterator {
     fn next(&mut self) -> Option<(pid_t, ExitStatus)> {
         use nix::sys::wait::WaitStatus::*;
         loop {
-            match waitpid(None, Some(WNOHANG)) {
+            match waitpid(None, Some(WaitPidFlag::WNOHANG)) {
                 Ok(PtraceEvent(..)) => {}
                 Ok(PtraceSyscall(..)) => {}
                 Ok(Exited(pid, status)) => {
-                    return Some((pid.into(), ExitStatus::Exited(status)));
+                    return Some((pid.into(), ExitStatus::Exited(status as i8)));
                 }
                 Ok(Signaled(pid, sig, core)) => {
                     return Some((pid.into(), ExitStatus::Signaled(sig, core)));
@@ -96,13 +97,15 @@ impl Iterator for ChildEventsIterator {
     fn next(&mut self) -> Option<ChildEvent> {
         use self::ChildEvent::*;
         use nix::sys::wait::WaitStatus::*;
+        let flags = WaitPidFlag::WNOHANG | WaitPidFlag::WUNTRACED |
+            WaitPidFlag::WCONTINUED;
         loop {
-            match waitpid(None, Some(WNOHANG | WUNTRACED | WCONTINUED)) {
+            match waitpid(None, Some(flags)) {
                 Ok(PtraceEvent(..)) => {}
                 Ok(PtraceSyscall(..)) => {}
                 Ok(Exited(pid, status)) => {
                     return Some(Death(pid.into(),
-                                      ExitStatus::Exited(status)));
+                                      ExitStatus::Exited(status as i8)));
                 }
                 Ok(Signaled(pid, sig, core)) => {
                     return Some(Death(pid.into(),

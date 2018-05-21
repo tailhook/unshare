@@ -3,7 +3,7 @@ use std::mem;
 use std::os::unix::io::{RawFd};
 
 use nix::unistd::pipe2;
-use nix::fcntl::O_CLOEXEC;
+use nix::fcntl::OFlag;
 use libc;
 use libc::{c_void, size_t};
 
@@ -32,7 +32,7 @@ pub enum PipeHolder {
 
 impl Pipe {
     pub fn new() -> Result<Pipe, Error> {
-        let (rd, wr) = try!(result(CreatePipe, pipe2(O_CLOEXEC)));
+        let (rd, wr) = try!(result(CreatePipe, pipe2(OFlag::O_CLOEXEC)));
         Ok(Pipe(rd, wr))
     }
     pub fn split(self) -> (PipeReader, PipeWriter) {

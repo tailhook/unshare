@@ -5,7 +5,7 @@ use nix::Error;
 use nix::unistd::Pid;
 use nix::sys::wait::waitpid;
 use nix::sys::signal::{Signal, SIGKILL, kill};
-use nix::errno::EINTR;
+use nix::errno::Errno::EINTR;
 use libc::pid_t;
 
 use pipe::PipeHolder;
@@ -43,7 +43,7 @@ impl Child {
                 Ok(PtraceSyscall(..)) => {}
                 Ok(Exited(x, status)) => {
                     assert!(i32::from(x) == self.pid);
-                    return Ok(ExitStatus::Exited(status));
+                    return Ok(ExitStatus::Exited(status as i8));
                 }
                 Ok(Signaled(x, sig, core)) => {
                     assert!(i32::from(x) == self.pid);

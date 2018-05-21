@@ -243,4 +243,29 @@ impl Command {
         self.config.make_group_leader = make_group_leader;
         self
     }
+
+    /// Inserts a magic environment variable that will contain pid of spawned
+    /// process
+    ///
+    /// This is usually needed to avoid accidental propagation of the
+    /// environment variables targeted only at this specific process.
+    ///
+    /// # Example
+    ///
+    /// This is how you can encode [systemd activation] protocol:
+    ///
+    /// ```rust,ignore
+    /// cmd.env_var_with_pid("LISTEN_PID");
+    /// cmd.env("LISTEN_FDS", "1");
+    /// ```
+    ///
+    /// [systemd activation]: https://www.freedesktop.org/software/systemd/man/sd_listen_fds.html
+    pub fn env_var_with_pid<K>(&mut self, key: K) -> &mut Command
+        where K: AsRef<OsStr>,
+    {
+        self.init_env_map();
+        self.environ.as_mut().unwrap().remove(key.as_ref());
+        self.pid_env_vars.insert(key.as_ref().to_os_string());
+        self
+    }
 }

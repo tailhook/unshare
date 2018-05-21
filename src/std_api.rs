@@ -8,6 +8,7 @@
 use std::ffi::OsStr;
 use std::default::Default;
 use std::collections::HashMap;
+use std::collections::HashSet;
 use std::env;
 use std::path::Path;
 
@@ -42,6 +43,7 @@ impl Command {
                 ].into_iter().collect(),
             close_fds: Vec::new(),
             id_map_commands: None,
+            pid_env_vars: HashSet::new(),
         }
     }
 
@@ -74,6 +76,7 @@ impl Command {
         self.environ.as_mut().unwrap().insert(
             key.as_ref().to_os_string(),
             val.as_ref().to_os_string());
+        self.pid_env_vars.remove(key.as_ref());
         self
     }
 
@@ -81,12 +84,14 @@ impl Command {
     pub fn env_remove<K: AsRef<OsStr>>(&mut self, key: K) -> &mut Command {
         self.init_env_map();
         self.environ.as_mut().unwrap().remove(key.as_ref());
+        self.pid_env_vars.remove(key.as_ref());
         self
     }
 
     /// Clears the entire environment map for the child process.
     pub fn env_clear(&mut self) -> &mut Command {
         self.environ = Some(HashMap::new());
+        self.pid_env_vars = HashSet::new();
         self
     }
 

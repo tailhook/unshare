@@ -24,6 +24,7 @@ fn main() {
     let mut chroot = None::<PathBuf>;
     let mut namespaces = Vec::<Namespace>::new();
     let mut groups = Vec::<gid_t>::new();
+    let mut pid_env_var = None::<String>;
     {  // this block limits scope of borrows by ap.refer() method
         let mut ap = ArgumentParser::new();
         ap.set_description("Run command with changed process state");
@@ -59,6 +60,10 @@ fn main() {
             .add_option(&["--alias", "--arg0"], ParseOption, "
                 Set alias of the command
                 (passed as `argv[0]` to the program)");
+        ap.refer(&mut pid_env_var)
+            .add_option(&["--env-var-with-pid"], ParseOption, "
+                Add environment variable with pid")
+            .metavar("ENV_VAR_NAME");
         ap.refer(&mut namespaces)
             .add_option(&["--unshare-pid"], PushConst(Namespace::Pid),
                 "Unshare pid namespace")
@@ -88,6 +93,9 @@ fn main() {
     if groups.len() > 0 { cmd.groups(groups); }
     if escape_stdout {
         cmd.stdout(unshare::Stdio::piped());
+    }
+    if let Some(var) = pid_env_var {
+        cmd.env_var_with_pid(var);
     }
     if verbose {
         // TODO(tailhook) implement display/debug in Command itself

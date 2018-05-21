@@ -9,7 +9,7 @@ use libc::{kill, signal};
 use libc::{F_GETFD, F_SETFD, F_DUPFD_CLOEXEC, FD_CLOEXEC, MNT_DETACH};
 use libc::{SIG_DFL, SIG_SETMASK};
 
-use run::ChildInfo;
+use run::{ChildInfo, MAX_PID_LEN};
 use error::ErrorCode as Err;
 
 // And at this point we've reached a special time in the life of the
@@ -82,6 +82,16 @@ pub unsafe fn child_after_clone(child: &ChildInfo) -> ! {
     for &(nstype, fd) in child.setns_namespaces {
         if libc::setns(fd, nstype.bits()) != 0 {
             fail(Err::SetNs, epipe);
+        }
+    }
+
+    if !child.pid_env_vars.is_empty() {
+        let mut buf = [0u8; MAX_PID_LEN+1];
+        let data = format_pid_fixed(&mut buf, libc::getpid());
+        for &(index, offset) in child.pid_env_vars {
+            // we know that there are at least MAX_PID_LEN+1 bytes in buffer
+            child.environ[index].offset(offset as isize)
+                .copy_from(data.as_ptr() as *const i8, data.len());
         }
     }
 
@@ -170,7 +180,8 @@ pub unsafe fn child_after_clone(child: &ChildInfo) -> ! {
 
     libc::execve(child.filename,
                  child.args.as_ptr(),
-                 child.environ.as_ptr());
+                 // cancelling mutability, it should be fine
+                 child.environ.as_ptr() as *const *const i8);
     fail(Err::Exec, epipe);
 }
 
@@ -191,6 +202,25 @@ unsafe fn fail(code: Err, output: RawFd) -> ! {
     libc::_exit(127);
 }
 
+fn format_pid_fixed<'a>(buf: &'a mut [u8], pid: libc::pid_t) -> &'a [u8] {
+    buf[buf.len()-1] = 0;
+    if pid == 0 {
+        buf[buf.len()-2] = b'0';
+        return &buf[buf.len()-2..]
+    } else {
+        let mut tmp = pid;
+        // can't use stdlib function because that can allocate
+        for n in (0..buf.len()-1).rev() {
+            buf[n] = (tmp % 10) as u8 + b'0';
+            tmp /= 10;
+            if tmp == 0 {
+                return &buf[n..];
+            }
+        }
+        unreachable!("can't format pid");
+    };
+}
+
 /// We don't use functions from nix here because they may allocate memory
 /// which we can't to this this module.
 mod ffi {
@@ -201,5 +231,38 @@ mod ffi {
     extern {
         pub fn pivot_root(new_root: *const c_char, put_old: *const c_char)
             -> c_int;
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use rand::{thread_rng, Rng};
+    use run::MAX_PID_LEN;
+    use std::ffi::CStr;
+    use super::format_pid_fixed;
+
+    fn fmt_normal(val: i32) -> String {
+        let mut buf = [0u8; MAX_PID_LEN+1];
+        let slice = format_pid_fixed(&mut buf, val);
+        return CStr::from_bytes_with_nul(slice).unwrap()
+            .to_string_lossy().to_string();
+    }
+    #[test]
+    fn test_format() {
+        assert_eq!(fmt_normal(0), "0");
+        assert_eq!(fmt_normal(1), "1");
+        assert_eq!(fmt_normal(7), "7");
+        assert_eq!(fmt_normal(79), "79");
+        assert_eq!(fmt_normal(254), "254");
+        assert_eq!(fmt_normal(1158), "1158");
+        assert_eq!(fmt_normal(77839), "77839");
+    }
+    #[test]
+    fn test_random() {
+        for _ in 0..100000 {
+            let x = thread_rng().gen();
+            if x < 0 { continue; }
+            assert_eq!(fmt_normal(x), format!("{}", x));
+        }
     }
 }

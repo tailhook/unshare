@@ -1,12 +1,13 @@
-use std::io::{Read, Write};
-use std::ptr;
-use std::fs::File;
-use std::env::current_dir;
-use std::path::{Path, PathBuf};
-use std::ffi::CString;
-use std::os::unix::io::{RawFd, AsRawFd};
-use std::os::unix::ffi::{OsStrExt};
 use std::collections::HashMap;
+use std::env::current_dir;
+use std::ffi::CString;
+use std::fs::File;
+use std::io::{Read, Write};
+use std::iter::repeat;
+use std::os::unix::ffi::{OsStrExt};
+use std::os::unix::io::{RawFd, AsRawFd};
+use std::path::{Path, PathBuf};
+use std::ptr;
 
 use libc::{c_char, close};
 use nix;
@@ -31,10 +32,13 @@ use ffi_util::ToCString;
 use namespace::to_clone_flag;
 
 
+pub const MAX_PID_LEN: usize = 12;
+
 pub struct ChildInfo<'a> {
     pub filename: *const c_char,
     pub args: &'a [*const c_char],
-    pub environ: &'a [*const c_char],
+    // this is mut because we write pid to environ
+    pub environ: &'a [*mut c_char],
     pub cfg: &'a Config,
     pub chroot: &'a Option<Chroot>,
     pub pivot: &'a Option<Pivot>,
@@ -45,6 +49,7 @@ pub struct ChildInfo<'a> {
     pub fd_lookup: &'a HashMap<RawFd, RawFd>,
     pub close_fds: &'a [(RawFd, RawFd)],
     pub setns_namespaces: &'a [(CloneFlags, RawFd)],
+    pub pid_env_vars: &'a [(usize, usize)],
 }
 
 fn raw_with_null(arr: &Vec<CString>) -> Vec<*const c_char> {
@@ -53,6 +58,15 @@ fn raw_with_null(arr: &Vec<CString>) -> Vec<*const c_char> {
         vec.push(i.as_ptr());
     }
     vec.push(ptr::null());
+    return vec;
+}
+
+fn raw_with_null_mut(arr: &mut Vec<Vec<u8>>) -> Vec<*mut c_char> {
+    let mut vec = Vec::with_capacity(arr.len() + 1);
+    for i in arr {
+        vec.push(i.as_mut_ptr() as *mut c_char);
+    }
+    vec.push(ptr::null_mut());
     return vec;
 }
 
@@ -159,14 +173,24 @@ impl Command {
 
         let c_args = raw_with_null(&self.args);
 
-        let environ: Vec<CString> = self.environ.as_ref().unwrap()
+        let mut environ: Vec<_> = self.environ.as_ref().unwrap()
             .iter().map(|(k, v)| {
                 let mut pair = k[..].as_bytes().to_vec();
                 pair.push(b'=');
                 pair.extend(v.as_bytes());
-                CString::new(pair).unwrap()
+                pair.push(0);
+                pair
             }).collect();
-        let c_environ: Vec<_> = raw_with_null(&environ);
+        let mut pid_env_vars = Vec::new();
+        for var_name in &self.pid_env_vars {
+            let mut pair = var_name[..].as_bytes().to_vec();
+            pair.push(b'=');
+            let (index, offset) = (environ.len(), pair.len());
+            pair.extend(repeat(0).take(MAX_PID_LEN+1));
+            environ.push(pair);
+            pid_env_vars.push((index, offset));
+        }
+        let c_environ: Vec<_> = raw_with_null_mut(&mut environ);
 
         let (int_fds, ext_fds, _guards) = try!(prepare_descriptors(&self.fds));
 
@@ -229,6 +253,7 @@ impl Command {
                 fd_lookup: &int_fds,
                 close_fds: &close_fds,
                 setns_namespaces: &setns_ns,
+                pid_env_vars: &pid_env_vars,
             };
             child::child_after_clone(&child_info);
         }), &mut nstack[..], self.config.namespaces, Some(SIGCHLD as i32))));

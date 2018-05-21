@@ -29,6 +29,7 @@
 #![warn(missing_docs)]
 extern crate libc;
 extern crate nix;
+#[cfg(test)] extern crate rand;
 
 mod namespace;
 mod idmap;
@@ -61,7 +62,7 @@ pub use debug::{Style, Printer};
 use std::ffi::{CString, OsString};
 use std::path::PathBuf;
 use std::os::unix::io::RawFd;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 use pipe::PipeHolder;
 
@@ -79,6 +80,7 @@ pub struct Command {
     chroot_dir: Option<PathBuf>,
     pivot_root: Option<(PathBuf, PathBuf, bool)>,
     id_map_commands: Option<(PathBuf, PathBuf)>,
+    pid_env_vars: HashSet<OsString>,
 }
 
 /// The reference to the running child

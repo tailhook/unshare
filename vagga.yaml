@@ -19,16 +19,16 @@ containers:
 
   ubuntu:
     setup:
-    - !Ubuntu xenial
+    - !Ubuntu bionic
     - !Install [ca-certificates, build-essential, vim]
 
     - !TarInstall
-      url: "https://static.rust-lang.org/dist/rust-1.19.0-x86_64-unknown-linux-gnu.tar.gz"
+      url: "https://static.rust-lang.org/dist/rust-1.26.0-x86_64-unknown-linux-gnu.tar.gz"
       script: "./install.sh --prefix=/usr \
                --components=rustc,rust-std-x86_64-unknown-linux-gnu,cargo"
     - &bulk !Tar
-      url: "https://github.com/tailhook/bulk/releases/download/v0.4.9/bulk-v0.4.9.tar.gz"
-      sha256: 23471a9986274bb4b7098c03e2eb7e1204171869b72c45385fcee1c64db2d111
+      url: "https://github.com/tailhook/bulk/releases/download/v0.4.11/bulk-v0.4.11.tar.gz"
+      sha256: b718bb8448e726690c94d98d004bf7575f7a429106ec26ad3faf11e0fd9a7978
       path: /
 
     environ:

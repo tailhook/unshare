@@ -10,6 +10,19 @@ commands:
     container: ubuntu
     run: [cargo, build]
 
+  test: !Command
+    description: Test the library
+    container: ubuntu
+    run: [cargo, test]
+
+  doc: !Command
+    description: Generate docs
+    container: ubuntu
+    epilog: |
+      ------------------------------------------
+        xdg-open target/doc/unshare/index.html
+    run: [cargo, test]
+
   _bulk: !Command
     description: Run `bulk` command (for version bookkeeping)
     container: ubuntu

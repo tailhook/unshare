@@ -9,7 +9,7 @@ keywords = ["linux", "container", "namespace", "docker", "process"]
 homepage = "https://github.com/tailhook/unshare"
 documentation = "https://docs.rs/unshare"
 categories = ["os::unix-apis"]
-version = "0.2.0"
+version = "0.3.0"
 authors = ["paul@colomiets.name"]
 
 [dependencies]

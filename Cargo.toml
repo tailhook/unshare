@@ -14,7 +14,7 @@ authors = ["paul@colomiets.name"]
 
 [dependencies]
 libc = "0.2.26"
-nix = "0.10.0"
+nix = "0.11.0"
 
 [dev-dependencies]
 argparse = "0.2.1"

@@ -20,6 +20,7 @@ pub enum ErrorCode {
     SetIdMap = 10,
     SetPGid = 11,
     SetNs = 12,
+    CapSet = 13,
 }
 
 /// Error runnning process
@@ -86,6 +87,8 @@ pub enum Error {
     SetPGid(i32),
     /// Error when calling setns syscall
     SetNs(i32),
+    /// Error when calling capset syscall
+    CapSet(i32),
 }
 
 impl Error {
@@ -110,6 +113,7 @@ impl Error {
             &AuxCommandKilled(..) => None,
             &SetPGid(x) => Some(x),
             &SetNs(x) => Some(x),
+            &CapSet(x) => Some(x),
         }
     }
 }
@@ -135,6 +139,7 @@ impl StdError for Error {
             &AuxCommandKilled(_) => "aux command was killed by signal",
             &SetPGid(_) => "error when calling setpgid",
             &SetNs(_) => "error when calling setns",
+            &CapSet(_) => "error when setting capabilities",
         }
     }
 }
@@ -219,6 +224,7 @@ impl ErrorCode {
             C::SetIdMap => E::SetIdMap(errno),
             C::SetPGid => E::SetPGid(errno),
             C::SetNs => E::SetNs(errno),
+            C::CapSet => E::CapSet(errno),
         }
     }
     pub fn from_i32(code: i32, errno: i32) -> Error {
@@ -238,6 +244,7 @@ impl ErrorCode {
             c if c == C::SetIdMap as i32 => E::SetIdMap(errno),
             c if c == C::SetPGid as i32 => E::SetPGid(errno),
             c if c == C::SetNs as i32 => E::SetNs(errno),
+            c if c == C::CapSet as i32 => E::CapSet(errno),
             _ => E::UnknownError,
         }
     }

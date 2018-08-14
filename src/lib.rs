@@ -31,6 +31,7 @@ extern crate libc;
 extern crate nix;
 #[cfg(test)] extern crate rand;
 
+mod caps;
 mod namespace;
 mod idmap;
 mod chroot;
@@ -58,6 +59,7 @@ pub use idmap::{UidMap, GidMap};
 pub use zombies::{reap_zombies, child_events, ChildEvent};
 pub use nix::sys::signal::Signal;
 pub use debug::{Style, Printer};
+pub use caps::{Capability};
 
 use std::ffi::{CString, OsString};
 use std::path::PathBuf;
@@ -81,6 +83,7 @@ pub struct Command {
     pivot_root: Option<(PathBuf, PathBuf, bool)>,
     id_map_commands: Option<(PathBuf, PathBuf)>,
     pid_env_vars: HashSet<OsString>,
+    keep_caps: Option<[u32; 2]>,
 }
 
 /// The reference to the running child

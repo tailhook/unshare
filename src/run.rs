@@ -50,6 +50,7 @@ pub struct ChildInfo<'a> {
     pub close_fds: &'a [(RawFd, RawFd)],
     pub setns_namespaces: &'a [(CloneFlags, RawFd)],
     pub pid_env_vars: &'a [(usize, usize)],
+    pub keep_caps: &'a Option<[u32; 2]>,
 }
 
 fn raw_with_null(arr: &Vec<CString>) -> Vec<*const c_char> {
@@ -254,6 +255,7 @@ impl Command {
                 close_fds: &close_fds,
                 setns_namespaces: &setns_ns,
                 pid_env_vars: &pid_env_vars,
+                keep_caps: &self.keep_caps,
             };
             child::child_after_clone(&child_info);
         }), &mut nstack[..], self.config.namespaces, Some(SIGCHLD as i32))));

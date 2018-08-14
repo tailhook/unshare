@@ -1,7 +1,7 @@
-use std::io;
 use std::ffi::OsStr;
-use std::path::Path;
+use std::io;
 use std::os::unix::io::AsRawFd;
+use std::path::Path;
 
 use nix::sys::signal::{Signal};
 
@@ -10,6 +10,7 @@ use {Command, Namespace};
 use idmap::{UidMap, GidMap};
 use stdio::dup_file_cloexec;
 use namespace::to_clone_flag;
+use caps::Capability;
 
 
 impl Command {
@@ -267,5 +268,29 @@ impl Command {
         self.environ.as_mut().unwrap().remove(key.as_ref());
         self.pid_env_vars.insert(key.as_ref().to_os_string());
         self
+    }
+
+    /// Drop all capabilities, but keep only ones set by this setter
+    ///
+    /// This method sets three or four sets of capabilities:
+    /// * Permitted
+    /// * Inherited
+    /// * Effective
+    /// * Ambient (if supported)
+    ///
+    /// This works both when uid changes (from 0 to other) and when it
+    /// isn't changed, but requires process to have all capabilities
+    /// granted by this method.
+    ///
+    /// This method replaces whole capability mask on each invocation
+    pub fn keep_caps<'x>(&mut self,
+        caps: impl IntoIterator<Item=&'x Capability>)
+    {
+        let mut buf = [0u32; 2];
+        for item in caps {
+            let item = *item as u32;
+            buf[(item >> 5) as usize] |= 1 << (item & 31);
+        }
+        self.keep_caps = Some(buf);
     }
 }

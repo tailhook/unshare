@@ -118,6 +118,13 @@ pub unsafe fn child_after_clone(child: &ChildInfo) -> ! {
         }
     });
 
+    child.keep_caps.as_ref().map(|_| {
+        // Don't use securebits because on older systems it doesn't work
+        if libc::prctl(libc::PR_SET_KEEPCAPS, 1, 0, 0, 0) != 0 {
+            fail(Err::CapSet, epipe);
+        }
+    });
+
     child.cfg.gid.as_ref().map(|&gid| {
         if libc::setgid(gid) != 0 {
             fail(Err::SetUser, epipe);
@@ -133,6 +140,36 @@ pub unsafe fn child_after_clone(child: &ChildInfo) -> ! {
     child.cfg.uid.as_ref().map(|&uid| {
         if libc::setuid(uid) != 0 {
             fail(Err::SetUser, epipe);
+        }
+    });
+
+    child.keep_caps.as_ref().map(|caps| {
+        let header = ffi::CapsHeader {
+            version: ffi::CAPS_V3,
+            pid: 0,
+        };
+        let data = ffi::CapsData {
+            effective_s0: caps[0],
+            permitted_s0: caps[0],
+            inheritable_s0: caps[0],
+            effective_s1: caps[1],
+            permitted_s1: caps[1],
+            inheritable_s1: caps[1],
+        };
+        if libc::syscall(libc::SYS_capset, &header, &data) != 0 {
+            fail(Err::CapSet, epipe);
+        }
+        for idx in 0..caps.len()*32 {
+            if caps[(idx >> 5) as usize] & (1 << (idx & 31)) != 0 {
+                let rc = libc::prctl(
+                    libc::PR_CAP_AMBIENT,
+                    libc::PR_CAP_AMBIENT_RAISE,
+                    idx, 0, 0);
+                if rc != 0 && nix::errno::errno() == libc::ENOTSUP {
+                    // no need to iterate if ambient caps are notsupported
+                    break;
+                }
+            }
         }
     });
 
@@ -220,13 +257,29 @@ fn format_pid_fixed<'a>(buf: &'a mut [u8], pid: libc::pid_t) -> &'a [u8] {
         unreachable!("can't format pid");
     };
 }
-
 /// We don't use functions from nix here because they may allocate memory
 /// which we can't to this this module.
 mod ffi {
     use libc::{c_char, c_int};
 
     pub const PR_SET_PDEATHSIG: c_int = 1;
+    pub const CAPS_V3: u32 = 0x20080522;
+
+    #[repr(C)]
+    pub struct CapsHeader {
+        pub version: u32,
+        pub pid: i32,
+    }
+
+    #[repr(C)]
+    pub struct CapsData {
+        pub effective_s0: u32,
+        pub permitted_s0: u32,
+        pub inheritable_s0: u32,
+        pub effective_s1: u32,
+        pub permitted_s1: u32,
+        pub inheritable_s1: u32,
+    }
 
     extern {
         pub fn pivot_root(new_root: *const c_char, put_old: *const c_char)

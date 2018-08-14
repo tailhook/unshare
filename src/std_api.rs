@@ -44,6 +44,7 @@ impl Command {
             close_fds: Vec::new(),
             id_map_commands: None,
             pid_env_vars: HashSet::new(),
+            keep_caps: None,
         }
     }
 

@@ -132,11 +132,11 @@ impl Command {
     ///
     /// Note: each namespace have some consequences on how new process will
     /// work, some of them are described in the `Namespace` type documentation.
-    pub fn unshare<I:IntoIterator<Item=Namespace>>(&mut self, iter: I)
+    pub fn unshare<'x>(&mut self, iter: impl IntoIterator<Item=&'x Namespace>)
         -> &mut Command
     {
         for ns in iter {
-            self.config.namespaces |= to_clone_flag(ns);
+            self.config.namespaces |= to_clone_flag(*ns);
         }
         self
     }
@@ -180,7 +180,7 @@ impl Command {
     pub fn set_id_maps(&mut self, uid_map: Vec<UidMap>, gid_map: Vec<GidMap>)
         -> &mut Command
     {
-        self.unshare([Namespace::User].iter().cloned());
+        self.unshare(&[Namespace::User]);
         self.config.id_maps = Some((uid_map, gid_map));
         self
     }

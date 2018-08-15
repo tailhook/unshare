@@ -45,6 +45,7 @@ impl Command {
             id_map_commands: None,
             pid_env_vars: HashSet::new(),
             keep_caps: None,
+            before_unfreeze: None,
         }
     }
 

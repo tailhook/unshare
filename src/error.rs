@@ -28,7 +28,7 @@ pub enum ErrorCode {
 /// This type has very large number of options and it's enum only to be
 /// compact. Probably you shouldn't match on the error cases but just format
 /// it for user into string.
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub enum Error {
     /// Unknown nix error
     ///
@@ -89,6 +89,8 @@ pub enum Error {
     SetNs(i32),
     /// Error when calling capset syscall
     CapSet(i32),
+    /// Before unfreeze callback error
+    BeforeUnfreeze(Box<::std::error::Error + Send + Sync + 'static>),
 }
 
 impl Error {
@@ -114,6 +116,7 @@ impl Error {
             &SetPGid(x) => Some(x),
             &SetNs(x) => Some(x),
             &CapSet(x) => Some(x),
+            &BeforeUnfreeze(..) => None,
         }
     }
 }
@@ -140,6 +143,7 @@ impl StdError for Error {
             &SetPGid(_) => "error when calling setpgid",
             &SetNs(_) => "error when calling setns",
             &CapSet(_) => "error when setting capabilities",
+            &BeforeUnfreeze(_) => "error in before_unfreeze callback",
         }
     }
 }

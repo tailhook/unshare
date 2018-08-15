@@ -70,6 +70,7 @@ use pipe::PipeHolder;
 
 use libc::{pid_t};
 
+type BoxError = Box<::std::error::Error + Send + Sync + 'static>;
 
 /// Main class for running processes. Works in the spirit of builder pattern.
 pub struct Command {
@@ -84,6 +85,7 @@ pub struct Command {
     id_map_commands: Option<(PathBuf, PathBuf)>,
     pid_env_vars: HashSet<OsString>,
     keep_caps: Option<[u32; 2]>,
+    before_unfreeze: Option<Box<FnMut(pid_t) -> Result<(), BoxError>>>,
 }
 
 /// The reference to the running child

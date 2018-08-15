@@ -167,7 +167,7 @@ impl Command {
         unsafe { self.spawn_inner() }
     }
 
-    unsafe fn spawn_inner(&self) -> Result<Child, Error> {
+    unsafe fn spawn_inner(&mut self) -> Result<Child, Error> {
         // TODO(tailhook) add RAII for pipes
         let (wakeup_rd, wakeup) = try!(Pipe::new()).split();
         let (errpipe, errpipe_wr) = try!(Pipe::new()).split();
@@ -296,7 +296,7 @@ impl Command {
         })
     }
 
-    fn after_start(&self, pid: Pid,
+    fn after_start(&mut self, pid: Pid,
         mut wakeup: PipeWriter, mut errpipe: PipeReader)
         -> Result<(), Error>
     {
@@ -341,6 +341,9 @@ impl Command {
                     File::create(format!("/proc/{}/gid_map", pid))
                     .and_then(|mut f| f.write_all(&buf[..]))));
             }
+        }
+        if let Some(ref mut callback) = self.before_unfreeze {
+            callback(pid.into()).map_err(Error::BeforeUnfreeze)?;
         }
 
         try!(result(Err::PipeError, wakeup.write_all(b"x")));

@@ -46,6 +46,7 @@ impl Command {
             pid_env_vars: HashSet::new(),
             keep_caps: None,
             before_unfreeze: None,
+            before_exec: None,
         }
     }
 

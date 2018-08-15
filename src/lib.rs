@@ -65,6 +65,7 @@ use std::ffi::{CString, OsString};
 use std::path::PathBuf;
 use std::os::unix::io::RawFd;
 use std::collections::{HashMap, HashSet};
+use std::io;
 
 use pipe::PipeHolder;
 
@@ -86,6 +87,7 @@ pub struct Command {
     pid_env_vars: HashSet<OsString>,
     keep_caps: Option<[u32; 2]>,
     before_unfreeze: Option<Box<FnMut(pid_t) -> Result<(), BoxError>>>,
+    before_exec: Option<Box<FnMut() -> Result<(), io::Error>>>,
 }
 
 /// The reference to the running child

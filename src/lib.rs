@@ -41,6 +41,7 @@ mod config;
 mod error;
 mod pipe;
 mod child;
+mod callbacks;
 mod linux;
 mod fds;
 mod run;
@@ -86,8 +87,8 @@ pub struct Command {
     id_map_commands: Option<(PathBuf, PathBuf)>,
     pid_env_vars: HashSet<OsString>,
     keep_caps: Option<[u32; 2]>,
-    before_unfreeze: Option<Box<FnMut(pid_t) -> Result<(), BoxError>>>,
-    before_exec: Option<Box<FnMut() -> Result<(), io::Error>>>,
+    before_unfreeze: Option<Box<FnMut(u32) -> Result<(), BoxError>>>,
+    before_exec: Option<Box<Fn() -> Result<(), io::Error>>>,
 }
 
 /// The reference to the running child

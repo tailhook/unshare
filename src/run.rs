@@ -2,7 +2,7 @@ use std::collections::HashMap;
 use std::env::current_dir;
 use std::ffi::CString;
 use std::fs::File;
-use std::io::{Read, Write};
+use std::io::{self, Read, Write};
 use std::iter::repeat;
 use std::os::unix::ffi::{OsStrExt};
 use std::os::unix::io::{RawFd, AsRawFd};
@@ -51,6 +51,7 @@ pub struct ChildInfo<'a> {
     pub setns_namespaces: &'a [(CloneFlags, RawFd)],
     pub pid_env_vars: &'a [(usize, usize)],
     pub keep_caps: &'a Option<[u32; 2]>,
+    pub before_exec: &'a Option<Box<Fn() -> Result<(), io::Error>>>,
 }
 
 fn raw_with_null(arr: &Vec<CString>) -> Vec<*const c_char> {
@@ -256,6 +257,7 @@ impl Command {
                 setns_namespaces: &setns_ns,
                 pid_env_vars: &pid_env_vars,
                 keep_caps: &self.keep_caps,
+                before_exec: &self.before_exec,
             };
             child::child_after_clone(&child_info);
         }), &mut nstack[..], self.config.namespaces, Some(SIGCHLD as i32))));
@@ -343,7 +345,7 @@ impl Command {
             }
         }
         if let Some(ref mut callback) = self.before_unfreeze {
-            callback(pid.into()).map_err(Error::BeforeUnfreeze)?;
+            callback(i32::from(pid) as u32).map_err(Error::BeforeUnfreeze)?;
         }
 
         try!(result(Err::PipeError, wakeup.write_all(b"x")));

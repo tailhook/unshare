@@ -215,6 +215,14 @@ pub unsafe fn child_after_clone(child: &ChildInfo) -> ! {
         }
     }
 
+    if let Some(callback) = child.before_exec {
+        if let Err(e) = callback() {
+            fail_errno(Err::BeforeExec,
+                e.raw_os_error().unwrap_or(10873289),
+                epipe);
+        }
+    }
+
     libc::execve(child.filename,
                  child.args.as_ptr(),
                  // cancelling mutability, it should be fine
@@ -223,7 +231,9 @@ pub unsafe fn child_after_clone(child: &ChildInfo) -> ! {
 }
 
 unsafe fn fail(code: Err, output: RawFd) -> ! {
-    let errno = nix::errno::errno();
+    fail_errno(code, nix::errno::errno(), output)
+}
+unsafe fn fail_errno(code: Err, errno: i32, output: RawFd) -> ! {
     let bytes = [
         code as u8,
         (errno >> 24) as u8,

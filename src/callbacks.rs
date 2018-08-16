@@ -1,6 +1,6 @@
 use std::io;
-use std::error::Error;
-use libc::pid_t;
+
+use {Command, BoxError};
 
 
 impl Command {
@@ -20,9 +20,9 @@ impl Command {
     /// so there is only one of them can be called.
     ///
     pub fn before_unfreeze(&mut self,
-        f: impl FnMut(u32) -> Result<(), Box<Error + Send + Sync + 'static>)
+        f: impl FnMut(u32) -> Result<(), BoxError> + 'static)
     {
-        self.before_unfreeze = Box::new(f);
+        self.before_unfreeze = Some(Box::new(f));
     }
 
     /// Set a callback to run in the child before calling exec
@@ -43,8 +43,8 @@ impl Command {
     /// each invocation of this method **replaces** callback,
     /// so there is only one of them can be called.
     pub fn before_exec(&mut self,
-        f: impl FnMut() -> io::Result<()> + Send + Sync + 'static)
+        f: impl Fn() -> io::Result<()> + Send + Sync + 'static)
     {
-        self.before_exec = Box::new(f);
+        self.before_exec = Some(Box::new(f));
     }
 }

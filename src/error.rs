@@ -155,6 +155,7 @@ impl StdError for Error {
 
 impl fmt::Display for Error {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+        use Error::*;
         if let Some(code) = self.raw_os_error() {
             let errno = nix::errno::from_i32(code);
             if let nix::errno::Errno::UnknownErrno = errno {
@@ -167,7 +168,12 @@ impl fmt::Display for Error {
                     errno.desc(), code)
             }
         } else {
-            write!(fmt, "{}", self.description())
+            match self {
+                BeforeUnfreeze(err) => {
+                    write!(fmt, "{}: {}", self.description(), err)
+                }
+                _ => write!(fmt, "{}", self.description()),
+            }
         }
     }
 }

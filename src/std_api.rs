@@ -83,6 +83,20 @@ impl Command {
         self
     }
 
+    /// Inserts or updates multiple environment variable mappings.
+    pub fn envs<I, K, V>(&mut self, vars: I)-> &mut Command
+        where I: IntoIterator<Item=(K, V)>, K: AsRef<OsStr>, V: AsRef<OsStr>
+    {
+        for (ref key, ref val) in vars {
+            self.init_env_map();
+            self.environ.as_mut().unwrap().insert(
+                key.as_ref().to_os_string(),
+                val.as_ref().to_os_string());
+            self.pid_env_vars.remove(key.as_ref());
+        }
+        self
+    }
+    
     /// Removes an environment variable mapping.
     pub fn env_remove<K: AsRef<OsStr>>(&mut self, key: K) -> &mut Command {
         self.init_env_map();

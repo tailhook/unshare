@@ -21,7 +21,7 @@ pub enum ErrorCode {
     SetPGid = 11,
     SetNs = 12,
     CapSet = 13,
-    BeforeExec = 14,
+    PreExec = 14,
 }
 
 /// Error runnning process
@@ -93,7 +93,7 @@ pub enum Error {
     /// Before unfreeze callback error
     BeforeUnfreeze(Box<::std::error::Error + Send + Sync + 'static>),
     /// Before exec callback error
-    BeforeExec(i32),
+    PreExec(i32),
 }
 
 impl Error {
@@ -120,7 +120,7 @@ impl Error {
             &SetNs(x) => Some(x),
             &CapSet(x) => Some(x),
             &BeforeUnfreeze(..) => None,
-            &BeforeExec(x) => Some(x),
+            &PreExec(x) => Some(x),
         }
     }
 }
@@ -148,7 +148,7 @@ impl StdError for Error {
             &SetNs(_) => "error when calling setns",
             &CapSet(_) => "error when setting capabilities",
             &BeforeUnfreeze(_) => "error in before_unfreeze callback",
-            &BeforeExec(_) => "error in before_exec callback",
+            &PreExec(_) => "error in pre_exec callback",
         }
     }
 }
@@ -240,7 +240,7 @@ impl ErrorCode {
             C::SetPGid => E::SetPGid(errno),
             C::SetNs => E::SetNs(errno),
             C::CapSet => E::CapSet(errno),
-            C::BeforeExec => E::BeforeExec(errno),
+            C::PreExec => E::PreExec(errno),
         }
     }
     pub fn from_i32(code: i32, errno: i32) -> Error {
@@ -262,7 +262,7 @@ impl ErrorCode {
             c if c == C::SetNs as i32 => E::SetNs(errno),
             c if c == C::CapSet as i32 => E::CapSet(errno),
             // no BeforeUnfreeze, because can't be in a child
-            c if c == C::BeforeExec as i32 => E::BeforeExec(errno),
+            c if c == C::PreExec as i32 => E::PreExec(errno),
             _ => E::UnknownError,
         }
     }

@@ -11,7 +11,7 @@ impl Command {
     /// process (child) by privileged process (parent).
     ///
     /// This callback runs in **parent** process after all built-in setup is
-    /// done (setting uid namespaces). It always run before ``before_exec``
+    /// done (setting uid namespaces). It always run before ``pre_exec``
     /// callback in child.
     ///
     /// If callback returns error, process is shut down.
@@ -44,11 +44,11 @@ impl Command {
     /// Note: unlike same method in stdlib,
     /// each invocation of this method **replaces** callback,
     /// so there is only one of them can be called.
-    pub fn before_exec(
+    pub unsafe fn pre_exec(
         &mut self,
         f: impl Fn() -> io::Result<()> + Send + Sync + 'static,
     ) -> &mut Self {
-        self.before_exec = Some(Box::new(f));
+        self.pre_exec = Some(Box::new(f));
         self
     }
 }

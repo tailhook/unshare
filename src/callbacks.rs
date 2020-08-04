@@ -19,10 +19,12 @@ impl Command {
     /// Each invocation **replaces** callback,
     /// so there is only one of them can be called.
     ///
-    pub fn before_unfreeze(&mut self,
-        f: impl FnMut(u32) -> Result<(), BoxError> + 'static)
-    {
+    pub fn before_unfreeze(
+        &mut self,
+        f: impl FnMut(u32) -> Result<(), BoxError> + 'static,
+    ) -> &mut Self {
         self.before_unfreeze = Some(Box::new(f));
+        self
     }
 
     /// Set a callback to run in the child before calling exec
@@ -42,9 +44,11 @@ impl Command {
     /// Note: unlike same method in stdlib,
     /// each invocation of this method **replaces** callback,
     /// so there is only one of them can be called.
-    pub fn before_exec(&mut self,
-        f: impl Fn() -> io::Result<()> + Send + Sync + 'static)
-    {
+    pub fn before_exec(
+        &mut self,
+        f: impl Fn() -> io::Result<()> + Send + Sync + 'static,
+    ) -> &mut Self {
         self.before_exec = Some(Box::new(f));
+        self
     }
 }

@@ -215,9 +215,9 @@ pub unsafe fn child_after_clone(child: &ChildInfo) -> ! {
         }
     }
 
-    if let Some(callback) = child.before_exec {
+    if let Some(callback) = child.pre_exec {
         if let Err(e) = callback() {
-            fail_errno(Err::BeforeExec,
+            fail_errno(Err::PreExec,
                 e.raw_os_error().unwrap_or(10873289),
                 epipe);
         }

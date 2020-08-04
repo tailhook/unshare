@@ -88,7 +88,7 @@ pub struct Command {
     pid_env_vars: HashSet<OsString>,
     keep_caps: Option<[u32; 2]>,
     before_unfreeze: Option<Box<FnMut(u32) -> Result<(), BoxError>>>,
-    before_exec: Option<Box<Fn() -> Result<(), io::Error>>>,
+    pre_exec: Option<Box<Fn() -> Result<(), io::Error>>>,
 }
 
 /// The reference to the running child

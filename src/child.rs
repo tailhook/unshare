@@ -91,7 +91,7 @@ pub unsafe fn child_after_clone(child: &ChildInfo) -> ! {
         for &(index, offset) in child.pid_env_vars {
             // we know that there are at least MAX_PID_LEN+1 bytes in buffer
             child.environ[index].offset(offset as isize)
-                .copy_from(data.as_ptr() as *const i8, data.len());
+                .copy_from(data.as_ptr() as *const libc::c_char, data.len());
         }
     }
 
@@ -226,7 +226,7 @@ pub unsafe fn child_after_clone(child: &ChildInfo) -> ! {
     libc::execve(child.filename,
                  child.args.as_ptr(),
                  // cancelling mutability, it should be fine
-                 child.environ.as_ptr() as *const *const i8);
+                 child.environ.as_ptr() as *const *const libc::c_char);
     fail(Err::Exec, epipe);
 }
 

@@ -18,9 +18,6 @@ jobs:
   # deploy
   - stage: publish
     rust: stable
-    env:
-    # CARGO_TOKEN
-    - secure: "FfCDha2ZtsibjcwuTf5RJ947NCvBq+E+cPwdAqv9S3VALcmB6xL4VsgjrMX8UJr01UqlY741TXzC60jLPrs8YOeWjSpuEXTky8Tx9KgM1g8/JFwrbgLRsDMHZMcqIWTwA6YnY6YWQ/R4efZ7hUmxvuJKK9q0x8FHtzq7zf7ZJwjus4Lpo+3/nFbeY2/npRIypIpgH+CIdDDChKWhe/vLhYwuEIXrUOb3ccVP+8fFbOyBb+zhjWmt6AowtMruPAkYyOyedqWe0tbKTLWT7sAu47qHTy1OU7xyJYDZfFxvZ2CspVdxesy2vv3Wfc21wuoYFEKYYl9oKF1t5GRpjjDqrpQMc1NX/jsnJUU/doNf7rxQdO9sXOB3ZQ50Itx6uFEgV1OIt31PBC0VIs8WuKoxubD7hLPFB6trzYDaraz97DLvrB1DEzAjVrACsmsDxCRwtaO9bNPX92sImK05JFZrl8yommLNQLz9zlkm1xQfimKxIHbyoK5Fa+68nsXo52qzkNlZmWFwGPsCxy41h185Z58mRqMKeb67isggSEO+xCfdztBjNFYBrrGzkUHPpZc22j7fR83lgWXXyNWtwr1ZWFxCmJ95ekj/91HsH7jI6qoKTsbRt0RsWtCeIH0AP3PXjF6d9bfmRFBD/ga9xb2JGkSxFtHczCGSncnpP/GaEF4="
     install: true
     script: true
 

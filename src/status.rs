@@ -1,6 +1,5 @@
 use std::fmt;
-use {Signal};
-
+use Signal;
 
 /// The exit status of a process
 ///
@@ -11,7 +10,7 @@ pub enum ExitStatus {
     /// Process exited normally with some exit code
     Exited(i8),
     /// Process was killed by a signal (bool flag is true when core is dumped)
-    Signaled(Signal, /* dore dumped */bool)
+    Signaled(Signal, /* dore dumped */ bool),
 }
 
 impl ExitStatus {
@@ -41,12 +40,14 @@ impl fmt::Display for ExitStatus {
         match self {
             &Exited(c) => write!(fmt, "exited with code {}", c),
             &Signaled(sig, false) => {
-                write!(fmt, "killed by signal {:?}[{}]",
-                    sig, sig as i32)
+                write!(fmt, "killed by signal {:?}[{}]", sig, sig as i32)
             }
             &Signaled(sig, true) => {
-                write!(fmt, "killed by signal {:?}[{}] (core dumped)",
-                    sig, sig as i32)
+                write!(
+                    fmt,
+                    "killed by signal {:?}[{}] (core dumped)",
+                    sig, sig as i32
+                )
             }
         }
     }

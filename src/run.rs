@@ -4,33 +4,32 @@ use std::ffi::CString;
 use std::fs::File;
 use std::io::{self, Read, Write};
 use std::iter::repeat;
-use std::os::unix::ffi::{OsStrExt};
-use std::os::unix::io::{RawFd, AsRawFd};
+use std::os::unix::ffi::OsStrExt;
+use std::os::unix::io::{AsRawFd, RawFd};
 use std::path::{Path, PathBuf};
 use std::ptr;
 
 use libc::{c_char, close};
 use nix;
 use nix::errno::Errno::EINTR;
-use nix::fcntl::{fcntl, FcntlArg, open};
 use nix::fcntl::OFlag;
+use nix::fcntl::{fcntl, open, FcntlArg};
 use nix::sched::{clone, CloneFlags};
-use nix::sys::signal::{SIGKILL, SIGCHLD, kill};
+use nix::sys::signal::{kill, SIGCHLD, SIGKILL};
 use nix::sys::stat::Mode;
 use nix::sys::wait::waitpid;
 use nix::unistd::{setpgid, Pid};
 
 use child;
+use chroot::{Chroot, Pivot};
 use config::Config;
-use {Command, Child, ExitStatus};
-use error::{Error, result, cmd_result};
 use error::ErrorCode as Err;
-use pipe::{Pipe, PipeReader, PipeWriter, PipeHolder};
-use stdio::{Fd, Closing};
-use chroot::{Pivot, Chroot};
+use error::{cmd_result, result, Error};
 use ffi_util::ToCString;
 use namespace::to_clone_flag;
-
+use pipe::{Pipe, PipeHolder, PipeReader, PipeWriter};
+use stdio::{Closing, Fd};
+use {Child, Command, ExitStatus};
 
 pub const MAX_PID_LEN: usize = 12;
 
@@ -51,7 +50,7 @@ pub struct ChildInfo<'a> {
     pub setns_namespaces: &'a [(CloneFlags, RawFd)],
     pub pid_env_vars: &'a [(usize, usize)],
     pub keep_caps: &'a Option<[u32; 2]>,
-    pub pre_exec: &'a Option<Box<Fn() -> Result<(), io::Error>>>,
+    pub pre_exec: &'a Option<Box<dyn Fn() -> Result<(), io::Error>>>,
 }
 
 fn raw_with_null(arr: &Vec<CString>) -> Vec<*const c_char> {
@@ -60,7 +59,7 @@ fn raw_with_null(arr: &Vec<CString>) -> Vec<*const c_char> {
         vec.push(i.as_ptr());
     }
     vec.push(ptr::null());
-    return vec;
+    vec
 }
 
 fn raw_with_null_mut(arr: &mut Vec<Vec<u8>>) -> Vec<*mut c_char> {
@@ -69,12 +68,10 @@ fn raw_with_null_mut(arr: &mut Vec<Vec<u8>>) -> Vec<*mut c_char> {
         vec.push(i.as_mut_ptr() as *mut c_char);
     }
     vec.push(ptr::null_mut());
-    return vec;
+    vec
 }
 
-fn relative_to<A:AsRef<Path>, B:AsRef<Path>>(dir: A, rel: B, absolute: bool)
-    -> Option<PathBuf>
-{
+fn relative_to<A: AsRef<Path>, B: AsRef<Path>>(dir: A, rel: B, absolute: bool) -> Option<PathBuf> {
     let dir = dir.as_ref();
     let rel = rel.as_ref();
     let mut dircmp = dir.components();
@@ -90,10 +87,16 @@ fn relative_to<A:AsRef<Path>, B:AsRef<Path>>(dir: A, rel: B, absolute: bool)
     }
 }
 
-fn prepare_descriptors(fds: &HashMap<RawFd, Fd>)
-    -> Result<(HashMap<RawFd, RawFd>, HashMap<RawFd, PipeHolder>,
-               Vec<Closing>), Error>
-{
+fn prepare_descriptors(
+    fds: &HashMap<RawFd, Fd>,
+) -> Result<
+    (
+        HashMap<RawFd, RawFd>,
+        HashMap<RawFd, PipeHolder>,
+        Vec<Closing>,
+    ),
+    Error,
+> {
     let mut inner = HashMap::new();
     let mut outer = HashMap::new();
     let mut guards = Vec::new();
@@ -115,34 +118,40 @@ fn prepare_descriptors(fds: &HashMap<RawFd, Fd>)
             }
             &Fd::ReadNull => {
                 // Need to keep fd with cloexec, until we are in child
-                let fd = try!(result(Err::CreatePipe,
-                    open(Path::new("/dev/null"),
-                         OFlag::O_CLOEXEC|OFlag::O_RDONLY,
-                         Mode::empty())));
+                let fd = try!(result(
+                    Err::CreatePipe,
+                    open(
+                        Path::new("/dev/null"),
+                        OFlag::O_CLOEXEC | OFlag::O_RDONLY,
+                        Mode::empty()
+                    )
+                ));
                 guards.push(Closing::new(fd));
                 fd
             }
             &Fd::WriteNull => {
                 // Need to keep fd with cloexec, until we are in child
-                let fd = try!(result(Err::CreatePipe,
-                    open(Path::new("/dev/null"),
-                         OFlag::O_CLOEXEC|OFlag::O_WRONLY,
-                         Mode::empty())));
+                let fd = try!(result(
+                    Err::CreatePipe,
+                    open(
+                        Path::new("/dev/null"),
+                        OFlag::O_CLOEXEC | OFlag::O_WRONLY,
+                        Mode::empty()
+                    )
+                ));
                 guards.push(Closing::new(fd));
                 fd
             }
-            &Fd::Inherit => {
-                dest_fd
-            }
-            &Fd::Fd(ref x) => {
-                x.as_raw_fd()
-            }
+            &Fd::Inherit => dest_fd,
+            &Fd::Fd(ref x) => x.as_raw_fd(),
         };
         // The descriptor must not clobber the descriptors that are passed to
         // a child
         while fd != dest_fd && fds.contains_key(&fd) {
-            fd = try!(result(Err::CreatePipe,
-                fcntl(fd, FcntlArg::F_DUPFD_CLOEXEC(3))));
+            fd = try!(result(
+                Err::CreatePipe,
+                fcntl(fd, FcntlArg::F_DUPFD_CLOEXEC(3))
+            ));
             guards.push(Closing::new(fd));
         }
         inner.insert(dest_fd, fd);
@@ -155,8 +164,8 @@ impl Command {
     pub fn status(&mut self) -> Result<ExitStatus, Error> {
         // TODO(tailhook) stdin/stdout/stderr
         try!(self.spawn())
-        .wait()
-        .map_err(|e| Error::WaitError(e.raw_os_error().unwrap_or(-1)))
+            .wait()
+            .map_err(|e| Error::WaitError(e.raw_os_error().unwrap_or(-1)))
     }
     /// Spawn the command and return a handle that can be waited for
     pub fn spawn(&mut self) -> Result<Child, Error> {
@@ -175,20 +184,25 @@ impl Command {
 
         let c_args = raw_with_null(&self.args);
 
-        let mut environ: Vec<_> = self.environ.as_ref().unwrap()
-            .iter().map(|(k, v)| {
+        let mut environ: Vec<_> = self
+            .environ
+            .as_ref()
+            .unwrap()
+            .iter()
+            .map(|(k, v)| {
                 let mut pair = k[..].as_bytes().to_vec();
                 pair.push(b'=');
                 pair.extend(v.as_bytes());
                 pair.push(0);
                 pair
-            }).collect();
+            })
+            .collect();
         let mut pid_env_vars = Vec::new();
         for var_name in &self.pid_env_vars {
             let mut pair = var_name[..].as_bytes().to_vec();
             pair.push(b'=');
             let (index, offset) = (environ.len(), pair.len());
-            pair.extend(repeat(0).take(MAX_PID_LEN+1));
+            pair.extend(repeat(0).take(MAX_PID_LEN + 1));
             environ.push(pair);
             pid_env_vars.push((index, offset));
         }
@@ -196,18 +210,20 @@ impl Command {
 
         let (int_fds, ext_fds, _guards) = try!(prepare_descriptors(&self.fds));
 
-        let pivot = self.pivot_root.as_ref().map(|&(ref new, ref old, unmnt)| {
-            Pivot {
+        let pivot = self
+            .pivot_root
+            .as_ref()
+            .map(|&(ref new, ref old, unmnt)| Pivot {
                 new_root: new.to_cstring(),
                 put_old: old.to_cstring(),
                 old_inside: relative_to(old, new, true).unwrap().to_cstring(),
-                workdir: current_dir().ok()
+                workdir: current_dir()
+                    .ok()
                     .and_then(|cur| relative_to(cur, new, true))
                     .unwrap_or(PathBuf::from("/"))
                     .to_cstring(),
                 unmount_old_root: unmnt,
-            }
-        });
+            });
 
         let chroot = self.chroot_dir.as_ref().map(|dir| {
             let wrk_rel = if let Some((ref piv, _, _)) = self.pivot_root {
@@ -217,11 +233,11 @@ impl Command {
             };
             Chroot {
                 root: dir.to_cstring(),
-                workdir: current_dir().ok()
+                workdir: current_dir()
+                    .ok()
                     .and_then(|cur| relative_to(cur, wrk_rel, true))
                     .unwrap_or(PathBuf::from("/"))
-                    .to_cstring()
-,
+                    .to_cstring(),
             }
         });
 
@@ -236,31 +252,42 @@ impl Command {
         // build
         let fds = int_fds.iter().map(|(&x, &y)| (x, y)).collect::<Vec<_>>();
         let close_fds = self.close_fds.iter().cloned().collect::<Vec<_>>();
-        let setns_ns = self.config.setns_namespaces.iter()
+        let setns_ns = self
+            .config
+            .setns_namespaces
+            .iter()
             .map(|(ns, fd)| (to_clone_flag(*ns), fd.as_raw_fd()))
             .collect::<Vec<_>>();
-        let pid = try!(result(Err::Fork, clone(Box::new(|| -> isize {
-            // Note: mo memory allocations/deallocations here
-            close(wakeup.take().unwrap().into_fd());
-            let child_info = ChildInfo {
-                filename: self.filename.as_ptr(),
-                args: args_slice,
-                environ: environ_slice,
-                cfg: &self.config,
-                chroot: &chroot,
-                pivot: &pivot,
-                wakeup_pipe: wakeup_rd.take().unwrap().into_fd(),
-                error_pipe: errpipe_wr.take().unwrap().into_fd(),
-                fds: &fds,
-                fd_lookup: &int_fds,
-                close_fds: &close_fds,
-                setns_namespaces: &setns_ns,
-                pid_env_vars: &pid_env_vars,
-                keep_caps: &self.keep_caps,
-                pre_exec: &self.pre_exec,
-            };
-            child::child_after_clone(&child_info);
-        }), &mut nstack[..], self.config.namespaces, Some(SIGCHLD as i32))));
+        let pid = try!(result(
+            Err::Fork,
+            clone(
+                Box::new(|| -> isize {
+                    // Note: mo memory allocations/deallocations here
+                    close(wakeup.take().unwrap().into_fd());
+                    let child_info = ChildInfo {
+                        filename: self.filename.as_ptr(),
+                        args: args_slice,
+                        environ: environ_slice,
+                        cfg: &self.config,
+                        chroot: &chroot,
+                        pivot: &pivot,
+                        wakeup_pipe: wakeup_rd.take().unwrap().into_fd(),
+                        error_pipe: errpipe_wr.take().unwrap().into_fd(),
+                        fds: &fds,
+                        fd_lookup: &int_fds,
+                        close_fds: &close_fds,
+                        setns_namespaces: &setns_ns,
+                        pid_env_vars: &pid_env_vars,
+                        keep_caps: &self.keep_caps,
+                        pre_exec: &self.pre_exec,
+                    };
+                    child::child_after_clone(&child_info);
+                }),
+                &mut nstack[..],
+                self.config.namespaces,
+                Some(SIGCHLD as i32)
+            )
+        ));
         drop(wakeup_rd);
         drop(errpipe_wr); // close pipe so we don't wait for ourself
 
@@ -279,36 +306,34 @@ impl Command {
         Ok(Child {
             pid: pid.into(),
             status: None,
-            stdin: outer_fds.remove(&0).map(|x| {
-                match x {
-                    PipeHolder::Writer(x) => x,
-                    _ => unreachable!(),
-                }}),
-            stdout: outer_fds.remove(&1).map(|x| {
-                match x {
-                    PipeHolder::Reader(x) => x,
-                    _ => unreachable!(),
-                }}),
-            stderr: outer_fds.remove(&2).map(|x| {
-                match x {
-                    PipeHolder::Reader(x) => x,
-                    _ => unreachable!(),
-                }}),
+            stdin: outer_fds.remove(&0).map(|x| match x {
+                PipeHolder::Writer(x) => x,
+                _ => unreachable!(),
+            }),
+            stdout: outer_fds.remove(&1).map(|x| match x {
+                PipeHolder::Reader(x) => x,
+                _ => unreachable!(),
+            }),
+            stderr: outer_fds.remove(&2).map(|x| match x {
+                PipeHolder::Reader(x) => x,
+                _ => unreachable!(),
+            }),
             fds: outer_fds,
         })
     }
 
-    fn after_start(&mut self, pid: Pid,
-        mut wakeup: PipeWriter, mut errpipe: PipeReader)
-        -> Result<(), Error>
-    {
+    fn after_start(
+        &mut self,
+        pid: Pid,
+        mut wakeup: PipeWriter,
+        mut errpipe: PipeReader,
+    ) -> Result<(), Error> {
         if self.config.make_group_leader {
             try!(result(Err::SetPGid, setpgid(pid, pid)));
         }
 
         if let Some(&(ref uids, ref gids)) = self.config.id_maps.as_ref() {
-            if let Some(&(ref ucmd, ref gcmd)) = self.id_map_commands.as_ref()
-            {
+            if let Some(&(ref ucmd, ref gcmd)) = self.id_map_commands.as_ref() {
                 let mut cmd = Command::new(ucmd);
                 cmd.arg(format!("{}", pid));
                 for map in uids {
@@ -328,20 +353,32 @@ impl Command {
             } else {
                 let mut buf = Vec::new();
                 for map in uids {
-                    writeln!(&mut buf, "{} {} {}",
-                        map.inside_uid, map.outside_uid, map.count).unwrap();
+                    writeln!(
+                        &mut buf,
+                        "{} {} {}",
+                        map.inside_uid, map.outside_uid, map.count
+                    )
+                    .unwrap();
                 }
-                try!(result(Err::SetIdMap,
+                try!(result(
+                    Err::SetIdMap,
                     File::create(format!("/proc/{}/uid_map", pid))
-                    .and_then(|mut f| f.write_all(&buf[..]))));
+                        .and_then(|mut f| f.write_all(&buf[..]))
+                ));
                 let mut buf = Vec::new();
                 for map in gids {
-                    writeln!(&mut buf, "{} {} {}",
-                        map.inside_gid, map.outside_gid, map.count).unwrap();
+                    writeln!(
+                        &mut buf,
+                        "{} {} {}",
+                        map.inside_gid, map.outside_gid, map.count
+                    )
+                    .unwrap();
                 }
-                try!(result(Err::SetIdMap,
+                try!(result(
+                    Err::SetIdMap,
                     File::create(format!("/proc/{}/gid_map", pid))
-                    .and_then(|mut f| f.write_all(&buf[..]))));
+                        .and_then(|mut f| f.write_all(&buf[..]))
+                ));
             }
         }
         if let Some(ref mut callback) = self.before_unfreeze {
@@ -351,14 +388,18 @@ impl Command {
         try!(result(Err::PipeError, wakeup.write_all(b"x")));
         let mut err = [0u8; 6];
         match try!(result(Err::PipeError, errpipe.read(&mut err))) {
-            0 => {}  // Process successfully execve'd or dead
+            0 => {} // Process successfully execve'd or dead
             5 => {
                 let code = err[0];
-                let errno = ((err[1] as i32) << 24) | ((err[2] as i32) << 16) |
-                    ((err[3] as i32) << 8) | (err[4] as i32);
-                return Err(Err::from_i32(code as i32, errno))
+                let errno = ((err[1] as i32) << 24)
+                    | ((err[2] as i32) << 16)
+                    | ((err[3] as i32) << 8)
+                    | (err[4] as i32);
+                return Err(Err::from_i32(code as i32, errno));
             }
-            _ => { return Err(Error::UnknownError); }
+            _ => {
+                return Err(Error::UnknownError);
+            }
         }
         Ok(())
     }

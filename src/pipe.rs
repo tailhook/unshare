@@ -52,7 +52,6 @@ impl Drop for Pipe {
 
 impl PipeReader {
     /// Extract file descriptor from pipe reader without closing
-    // TODO(tailhook) implement IntoRawFd here
     pub fn into_fd(self) -> RawFd {
         let PipeReader(fd) = self;
         mem::forget(self);
@@ -62,7 +61,6 @@ impl PipeReader {
 
 impl PipeWriter {
     /// Extract file descriptor from pipe reader without closing
-    // TODO(tailhook) implement IntoRawFd here
     pub fn into_fd(self) -> RawFd {
         let PipeWriter(fd) = self;
         mem::forget(self);

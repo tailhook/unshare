@@ -1,10 +1,9 @@
 use std::io;
-use std::os::unix::io::{RawFd, AsRawFd, IntoRawFd};
+use std::os::unix::io::{AsRawFd, IntoRawFd, RawFd};
 
+use libc;
 use nix;
 use nix::fcntl::{fcntl, FcntlArg};
-use libc;
-
 
 /// An enumeration that is used to configure stdio file descritors
 ///
@@ -48,25 +47,29 @@ pub struct Closing(RawFd);
 pub fn dup_file_cloexec<F: AsRawFd>(file: &F) -> io::Result<Closing> {
     match fcntl(file.as_raw_fd(), FcntlArg::F_DUPFD_CLOEXEC(3)) {
         Ok(fd) => Ok(Closing::new(fd)),
-        Err(nix::Error::Sys(errno)) => {
-            return Err(io::Error::from_raw_os_error(errno as i32));
-        }
+        Err(nix::Error::Sys(errno)) => Err(io::Error::from_raw_os_error(errno as i32)),
         Err(nix::Error::InvalidPath) => unreachable!(),
         Err(nix::Error::InvalidUtf8) => unreachable!(),
-        Err(nix::Error::UnsupportedOperation) => {
-            return Err(io::Error::new(io::ErrorKind::Other,
-                "nix error: unsupported operation"));
-        }
+        Err(nix::Error::UnsupportedOperation) => Err(io::Error::new(
+            io::ErrorKind::Other,
+            "nix error: unsupported operation",
+        )),
     }
 }
 
 impl Stdio {
     /// Pipe is created for child process
-    pub fn piped() -> Stdio { Stdio::Pipe }
+    pub fn piped() -> Stdio {
+        Stdio::Pipe
+    }
     /// The child inherits file descriptor from the parent process
-    pub fn inherit() -> Stdio { Stdio::Inherit }
+    pub fn inherit() -> Stdio {
+        Stdio::Inherit
+    }
     /// Stream is attached to `/dev/null`
-    pub fn null() -> Stdio { Stdio::Null }
+    pub fn null() -> Stdio {
+        Stdio::Null
+    }
     /// Converts stdio definition to file descriptor definition
     /// (mostly needed internally)
     pub fn to_fd(self, write: bool) -> Fd {
@@ -82,7 +85,7 @@ impl Stdio {
     /// A simpler helper method for `from_raw_fd`, that does dup of file
     /// descriptor, so is actually safe to use (but can fail)
     pub fn dup_file<F: AsRawFd>(file: &F) -> io::Result<Stdio> {
-        dup_file_cloexec(file).map(|f| Stdio::Fd(f))
+        dup_file_cloexec(file).map(Stdio::Fd)
     }
     /// A simpler helper method for `from_raw_fd`, that consumes file
     ///
@@ -95,21 +98,31 @@ impl Stdio {
 
 impl Fd {
     /// Create a pipe so that child can read from it
-    pub fn piped_read() -> Fd { Fd::ReadPipe }
+    pub fn piped_read() -> Fd {
+        Fd::ReadPipe
+    }
     /// Create a pipe so that child can write to it
-    pub fn piped_write() -> Fd { Fd::WritePipe }
+    pub fn piped_write() -> Fd {
+        Fd::WritePipe
+    }
     /// Inherit the child descriptor from parent
     ///
     /// Not very useful for custom file descriptors better use `from_file()`
-    pub fn inherit() -> Fd { Fd::Inherit }
+    pub fn inherit() -> Fd {
+        Fd::Inherit
+    }
     /// Create a readable pipe that always has end of file condition
-    pub fn read_null() -> Fd { Fd::ReadNull }
+    pub fn read_null() -> Fd {
+        Fd::ReadNull
+    }
     /// Create a writable pipe that ignores all the input
-    pub fn write_null() -> Fd { Fd::WriteNull }
+    pub fn write_null() -> Fd {
+        Fd::WriteNull
+    }
     /// A simpler helper method for `from_raw_fd`, that does dup of file
     /// descriptor, so is actually safe to use (but can fail)
     pub fn dup_file<F: AsRawFd>(file: &F) -> io::Result<Fd> {
-        dup_file_cloexec(file).map(|f| Fd::Fd(f))
+        dup_file_cloexec(file).map(Fd::Fd)
     }
     /// A simpler helper method for `from_raw_fd`, that consumes file
     pub fn from_file<F: IntoRawFd>(file: F) -> Fd {
@@ -125,7 +138,7 @@ impl Closing {
 
 impl AsRawFd for Closing {
     fn as_raw_fd(&self) -> RawFd {
-        return self.0;
+        self.0
     }
 }
 

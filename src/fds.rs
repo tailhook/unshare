@@ -1,14 +1,13 @@
 use std::mem::zeroed;
-use std::ops::{Range, RangeTo, RangeFrom, RangeFull};
+use std::ops::{Range, RangeFrom, RangeFull, RangeTo};
 use std::os::unix::io::RawFd;
 
-use nix::errno::errno;
 use libc::getrlimit;
 use libc::RLIMIT_NOFILE;
+use nix::errno::errno;
 
-use stdio::{Fd};
+use stdio::Fd;
 use Command;
-
 
 /// This is just a temporary enum to coerce `std::ops::Range*` variants
 /// into single value for convenience. Used in `close_fds` method.
@@ -17,22 +16,20 @@ pub enum AnyRange {
     Range(RawFd, RawFd),
 }
 
-
 impl Command {
-
     /// Configuration for any other file descriptor (panics for fds < 3) use
     /// stdin/stdout/stderr for them
     ///
     /// Rust creates file descriptors with CLOEXEC flag by default, so no
     /// descriptors are inherited except ones specifically configured here
     /// (and stdio which is inherited by default)
-    pub fn file_descriptor(&mut self, target_fd: RawFd, cfg: Fd)
-        -> &mut Command
-    {
+    pub fn file_descriptor(&mut self, target_fd: RawFd, cfg: Fd) -> &mut Command {
         if target_fd <= 2 {
-            panic!("Stdio file descriptors must be configured with respective \
+            panic!(
+                "Stdio file descriptors must be configured with respective \
                     methods instead of passing fd {} to `file_descritor()`",
-                    target_fd)
+                target_fd
+            )
         }
         self.fds.insert(target_fd, cfg);
         self
@@ -74,9 +71,7 @@ impl Command {
     ///
     /// Panics when lower range of fd is < 3 (stdio file descriptors)
     ///
-    pub fn close_fds<A: Into<AnyRange>>(&mut self, range: A)
-        -> &mut Command
-    {
+    pub fn close_fds<A: Into<AnyRange>>(&mut self, range: A) -> &mut Command {
         self.close_fds.push(match range.into() {
             AnyRange::Range(x, y) => {
                 assert!(x >= 3);
@@ -90,7 +85,7 @@ impl Command {
                     panic!("Can't get rlimit: errno {}", errno());
                 }
                 (x, rlim.rlim_cur as RawFd)
-            }
+            },
         });
         self
     }
@@ -99,11 +94,9 @@ impl Command {
     ///
     /// Initial state is inherit all the stdio and do nothing to other fds.
     pub fn reset_fds(&mut self) -> &mut Command {
-        self.fds = vec![
-                (0, Fd::inherit()),
-                (1, Fd::inherit()),
-                (2, Fd::inherit()),
-                ].into_iter().collect();
+        self.fds = vec![(0, Fd::inherit()), (1, Fd::inherit()), (2, Fd::inherit())]
+            .into_iter()
+            .collect();
         self.close_fds.clear();
         self
     }
@@ -111,24 +104,24 @@ impl Command {
 
 impl Into<AnyRange> for Range<RawFd> {
     fn into(self) -> AnyRange {
-        return AnyRange::Range(self.start, self.end);
+        AnyRange::Range(self.start, self.end)
     }
 }
 
 impl Into<AnyRange> for RangeTo<RawFd> {
     fn into(self) -> AnyRange {
-        return AnyRange::Range(3, self.end);
+        AnyRange::Range(3, self.end)
     }
 }
 
 impl Into<AnyRange> for RangeFrom<RawFd> {
     fn into(self) -> AnyRange {
-        return AnyRange::RangeFrom(self.start);
+        AnyRange::RangeFrom(self.start)
     }
 }
 
 impl Into<AnyRange> for RangeFull {
     fn into(self) -> AnyRange {
-        return AnyRange::RangeFrom(3);
+        AnyRange::RangeFrom(3)
     }
 }

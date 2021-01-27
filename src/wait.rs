@@ -1,19 +1,17 @@
 use std::io;
 use std::os::unix::io::RawFd;
 
-use nix::Error;
-use nix::unistd::Pid;
-use nix::sys::wait::waitpid;
-use nix::sys::signal::{Signal, SIGKILL, kill};
-use nix::errno::Errno::EINTR;
 use libc::pid_t;
+use nix::errno::Errno::EINTR;
+use nix::sys::signal::{kill, Signal, SIGKILL};
+use nix::sys::wait::waitpid;
+use nix::unistd::Pid;
+use nix::Error;
 
 use pipe::PipeHolder;
 use {Child, ExitStatus, PipeReader, PipeWriter};
 
-
 impl Child {
-
     /// Returns pid of the process (a mirror of std method)
     pub fn id(&self) -> u32 {
         self.pid as u32
@@ -29,11 +27,10 @@ impl Child {
         if let Some(x) = self.status {
             return Ok(x);
         }
-        let status = try!(self._wait());
+        let status = self._wait()?;
         self.status = Some(status);
         Ok(status)
     }
-
 
     fn _wait(&mut self) -> Result<ExitStatus, io::Error> {
         use nix::sys::wait::WaitStatus::*;
@@ -56,12 +53,12 @@ impl Child {
                 Err(Error::InvalidPath) => unreachable!(),
                 Err(Error::InvalidUtf8) => unreachable!(),
                 Err(Error::UnsupportedOperation) => {
-                    return Err(io::Error::new(io::ErrorKind::Other,
-                               "nix error: unsupported operation"));
+                    return Err(io::Error::new(
+                        io::ErrorKind::Other,
+                        "nix error: unsupported operation",
+                    ));
                 }
-                Err(Error::Sys(x)) => {
-                    return Err(io::Error::from_raw_os_error(x as i32))
-                }
+                Err(Error::Sys(x)) => return Err(io::Error::from_raw_os_error(x as i32)),
             }
         }
     }
@@ -74,16 +71,14 @@ impl Child {
             return Err(io::Error::new(
                 io::ErrorKind::InvalidInput,
                 "invalid argument: can't kill an exited process",
-            ))
+            ));
         }
-        kill(Pid::from_raw(self.pid), signal)
-        .map_err(|e| match e {
+        kill(Pid::from_raw(self.pid), signal).map_err(|e| match e {
             Error::Sys(x) => io::Error::from_raw_os_error(x as i32),
             Error::InvalidPath => unreachable!(),
             Error::InvalidUtf8 => unreachable!(),
             Error::UnsupportedOperation => {
-                io::Error::new(io::ErrorKind::Other,
-                           "nix error: unsupported operation")
+                io::Error::new(io::ErrorKind::Other, "nix error: unsupported operation")
             }
         })
     }

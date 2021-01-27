@@ -4,7 +4,6 @@ use nix::sched::CloneFlags;
 
 use Command;
 
-
 /// This is a builder for various settings of how command may be printed
 ///
 /// Use `format!("{}", cmd.display(style))` to actually print a command.
@@ -83,11 +82,13 @@ impl<'a> fmt::Display for Printer<'a> {
                 } else {
                     &cmd.filename
                 };
-                let last_slash = path.as_bytes().iter()
-                    .rposition(|&x| x == b'/');
+                let last_slash = path.as_bytes().iter().rposition(|&x| x == b'/');
                 if let Some(off) = last_slash {
-                    write!(fmt, "{:?}",
-                        &String::from_utf8_lossy(&path.as_bytes()[off+1..]))?;
+                    write!(
+                        fmt,
+                        "{:?}",
+                        &String::from_utf8_lossy(&path.as_bytes()[off + 1..])
+                    )?;
                 } else {
                     write!(fmt, "{:?}", path)?;
                 }
@@ -111,11 +112,10 @@ impl<'a> fmt::Display for Printer<'a> {
                     }
                     write!(fmt, "}}")?;
                 }
-            } else {
-                if let Some(ref env) = cmd.environ {
-                    write!(fmt, "; environ[{}]", env.len())?;
-                }
+            } else if let Some(ref env) = cmd.environ {
+                write!(fmt, "; environ[{}]", env.len())?;
             }
+
             if let Some(ref dir) = cmd.chroot_dir {
                 write!(fmt, "; chroot={:?}", dir)?;
             }
@@ -171,8 +171,10 @@ mod test {
         let mut cmd = Command::new("/bin/hello");
         cmd.env_clear();
         cmd.env("A", "B");
-        assert_eq!(&format!("{:?}", cmd),
-            r#"<Command "/bin/hello"; environ: {"A"="B",}>"#);
+        assert_eq!(
+            &format!("{:?}", cmd),
+            r#"<Command "/bin/hello"; environ: {"A"="B",}>"#
+        );
     }
 
     #[test]
@@ -180,8 +182,10 @@ mod test {
         let mut cmd = Command::new("/bin/hello");
         cmd.env_clear();
         cmd.env("A", "B");
-        assert_eq!(&format!("{}", cmd.display(&Style::debug())),
-            r#"<Command "/bin/hello"; environ: {"A"="B",}>"#);
+        assert_eq!(
+            &format!("{}", cmd.display(&Style::debug())),
+            r#"<Command "/bin/hello"; environ: {"A"="B",}>"#
+        );
     }
 
     #[test]
@@ -189,8 +193,10 @@ mod test {
         let mut cmd = Command::new("/bin/hello");
         cmd.env_clear();
         cmd.arg("world!");
-        assert_eq!(&format!("{}", cmd.display(&Style::short())),
-            r#""hello" "world!""#);
+        assert_eq!(
+            &format!("{}", cmd.display(&Style::short())),
+            r#""hello" "world!""#
+        );
     }
 
     #[test]
@@ -198,7 +204,9 @@ mod test {
         let mut cmd = Command::new("/bin/hello");
         cmd.env_clear();
         cmd.env("A", "B");
-        assert_eq!(&format!("{}", cmd.display(&Style::debug().env(false))),
-            r#"<Command "/bin/hello"; environ[1]>"#);
+        assert_eq!(
+            &format!("{}", cmd.display(&Style::debug().env(false))),
+            r#"<Command "/bin/hello"; environ[1]>"#
+        );
     }
 }

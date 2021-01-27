@@ -3,18 +3,16 @@ use std::io;
 use std::os::unix::io::AsRawFd;
 use std::path::Path;
 
-use nix::sys::signal::{Signal};
+use nix::sys::signal::Signal;
 
-use ffi_util::ToCString;
-use {Command, Namespace};
-use idmap::{UidMap, GidMap};
-use stdio::dup_file_cloexec;
-use namespace::to_clone_flag;
 use caps::Capability;
-
+use ffi_util::ToCString;
+use idmap::{GidMap, UidMap};
+use namespace::to_clone_flag;
+use stdio::dup_file_cloexec;
+use {Command, Namespace};
 
 impl Command {
-
     /// Allow child process to daemonize. By default we run equivalent of
     /// `set_parent_death_signal(SIGKILL)`. See the `set_parent_death_signal`
     /// for better explanation.
@@ -69,8 +67,7 @@ impl Command {
     /// # Panics
     ///
     /// If directory is not absolute
-    pub fn chroot_dir<P: AsRef<Path>>(&mut self, dir: P) -> &mut Command
-    {
+    pub fn chroot_dir<P: AsRef<Path>>(&mut self, dir: P) -> &mut Command {
         let dir = dir.as_ref();
         if !dir.is_absolute() {
             panic!("Chroot dir must be absolute");
@@ -105,10 +102,12 @@ impl Command {
     ///
     /// Panics if either path is not absolute or new_root is not a prefix of
     /// put_old.
-    pub fn pivot_root<A: AsRef<Path>, B:AsRef<Path>>(&mut self,
-        new_root: A, put_old: B, unmount: bool)
-        -> &mut Command
-    {
+    pub fn pivot_root<A: AsRef<Path>, B: AsRef<Path>>(
+        &mut self,
+        new_root: A,
+        put_old: B,
+        unmount: bool,
+    ) -> &mut Command {
         let new_root = new_root.as_ref();
         let put_old = put_old.as_ref();
         if !new_root.is_absolute() {
@@ -123,8 +122,7 @@ impl Command {
                 panic!("The new_root is not a prefix of put old");
             }
         }
-        self.pivot_root = Some((new_root.to_path_buf(), put_old.to_path_buf(),
-                                unmount));
+        self.pivot_root = Some((new_root.to_path_buf(), put_old.to_path_buf(), unmount));
         self
     }
 
@@ -132,9 +130,7 @@ impl Command {
     ///
     /// Note: each namespace have some consequences on how new process will
     /// work, some of them are described in the `Namespace` type documentation.
-    pub fn unshare<'x>(&mut self, iter: impl IntoIterator<Item=&'x Namespace>)
-        -> &mut Command
-    {
+    pub fn unshare<'x>(&mut self, iter: impl IntoIterator<Item = &'x Namespace>) -> &mut Command {
         for ns in iter {
             self.config.namespaces |= to_clone_flag(*ns);
         }
@@ -151,10 +147,12 @@ impl Command {
     /// See `man 2 setns` for further details
     ///
     /// Note: using `unshare` and `setns` for the same namespace is meaningless.
-    pub fn set_namespace<F: AsRawFd>(&mut self, file: &F, ns: Namespace)
-        -> io::Result<&mut Command>
-    {
-        let fd = try!(dup_file_cloexec(file));
+    pub fn set_namespace<F: AsRawFd>(
+        &mut self,
+        file: &F,
+        ns: Namespace,
+    ) -> io::Result<&mut Command> {
+        let fd = dup_file_cloexec(file)?;
         self.config.setns_namespaces.insert(ns, fd);
         Ok(self)
     }
@@ -177,9 +175,7 @@ impl Command {
     /// want non-default behavior.
     ///
     /// See `man 7 user_namespaces` for more info
-    pub fn set_id_maps(&mut self, uid_map: Vec<UidMap>, gid_map: Vec<GidMap>)
-        -> &mut Command
-    {
+    pub fn set_id_maps(&mut self, uid_map: Vec<UidMap>, gid_map: Vec<GidMap>) -> &mut Command {
         self.unshare(&[Namespace::User]);
         self.config.id_maps = Some((uid_map, gid_map));
         self
@@ -195,13 +191,15 @@ impl Command {
     /// See `man 1 newuidmap`, `man 1 newgidmap` for details
     ///
     /// This method is no-op unless `set_id_maps` is called.
-    pub fn set_id_map_commands<A: AsRef<Path>, B: AsRef<Path>>(&mut self,
-        newuidmap: A, newgidmap: B)
-        -> &mut Command
-    {
+    pub fn set_id_map_commands<A: AsRef<Path>, B: AsRef<Path>>(
+        &mut self,
+        newuidmap: A,
+        newgidmap: B,
+    ) -> &mut Command {
         self.id_map_commands = Some((
             newuidmap.as_ref().to_path_buf(),
-            newgidmap.as_ref().to_path_buf()));
+            newgidmap.as_ref().to_path_buf(),
+        ));
         self
     }
 
@@ -262,7 +260,8 @@ impl Command {
     ///
     /// [systemd activation]: https://www.freedesktop.org/software/systemd/man/sd_listen_fds.html
     pub fn env_var_with_pid<K>(&mut self, key: K) -> &mut Command
-        where K: AsRef<OsStr>,
+    where
+        K: AsRef<OsStr>,
     {
         self.init_env_map();
         self.environ.as_mut().unwrap().remove(key.as_ref());
@@ -283,9 +282,7 @@ impl Command {
     /// granted by this method.
     ///
     /// This method replaces whole capability mask on each invocation
-    pub fn keep_caps<'x>(&mut self,
-        caps: impl IntoIterator<Item=&'x Capability>)
-    {
+    pub fn keep_caps<'x>(&mut self, caps: impl IntoIterator<Item = &'x Capability>) {
         let mut buf = [0u32; 2];
         for item in caps {
             let item = *item as u32;

@@ -70,6 +70,46 @@ pub unsafe fn child_after_clone(child: &ChildInfo) -> ! {
         }
     }
 
+    if !child.uid_maps.is_empty() {
+        let fd = libc::openat(libc::AT_FDCWD, b"/proc/self/uid_map\0".as_ptr() as *const i8, libc::O_WRONLY);
+        if fd < 0 {
+            fail(Err::SetIdMap, epipe);
+        }
+        if libc::write(fd, child.uid_maps.as_ptr() as *const libc::c_void, child.uid_maps.len()) < 0 {
+            fail(Err::SetIdMap, epipe);
+        }
+        if libc::close(fd) < 0 {
+            fail(Err::SetIdMap, epipe);
+        }
+    }
+
+    if !child.gid_maps.is_empty() {
+        // first configure setgroups to "deny"
+        let fd = libc::openat(libc::AT_FDCWD, b"/proc/self/setgroups\0".as_ptr() as *const i8, libc::O_WRONLY);
+        if fd < 0 {
+            fail(Err::SetIdMap, epipe);
+        }
+        let deny = b"deny";
+        if libc::write(fd, deny.as_ptr() as *const libc::c_void, deny.len()) < 0 {
+            fail(Err::SetIdMap, epipe);
+        }
+        if libc::close(fd) < 0 {
+            fail(Err::SetIdMap, epipe);
+        }
+
+        // then write gid_map
+        let fd = libc::openat(libc::AT_FDCWD, b"/proc/self/gid_map\0".as_ptr() as *const i8, libc::O_WRONLY);
+        if fd < 0 {
+            fail(Err::SetIdMap, epipe);
+        }
+        if libc::write(fd, child.gid_maps.as_ptr() as *const libc::c_void, child.gid_maps.len()) < 0 {
+            fail(Err::SetIdMap, epipe);
+        }
+        if libc::close(fd) < 0 {
+            fail(Err::SetIdMap, epipe);
+        }
+    }
+
     // Move error pipe file descriptors in case they clobber stdio
     while epipe < 3 {
         let nerr = libc::fcntl(epipe, F_DUPFD_CLOEXEC, 3);

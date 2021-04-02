@@ -52,6 +52,8 @@ pub struct ChildInfo<'a> {
     pub pid_env_vars: &'a [(usize, usize)],
     pub keep_caps: &'a Option<[u32; 2]>,
     pub pre_exec: &'a Option<Box<Fn() -> Result<(), io::Error>>>,
+    pub uid_maps: &'a [u8],
+    pub gid_maps: &'a [u8],
 }
 
 fn raw_with_null(arr: &Vec<CString>) -> Vec<*const c_char> {
@@ -239,6 +241,20 @@ impl Command {
         let setns_ns = self.config.setns_namespaces.iter()
             .map(|(ns, fd)| (to_clone_flag(*ns), fd.as_raw_fd()))
             .collect::<Vec<_>>();
+        let mut uid_maps = Vec::new();
+        let mut gid_maps = Vec::new();
+        if let Some(&(ref uids, ref gids)) = self.config.id_maps.as_ref() {
+            if self.id_map_commands.is_none() {
+               for map in uids {
+                   writeln!(&mut uid_maps, "{} {} {}",
+                       map.inside_uid, map.outside_uid, map.count).unwrap();
+               }
+               for map in gids {
+                   writeln!(&mut gid_maps, "{} {} {}",
+                       map.inside_gid, map.outside_gid, map.count).unwrap();
+               }
+            }
+        }
         let pid = try!(result(Err::Fork, clone(Box::new(|| -> isize {
             // Note: mo memory allocations/deallocations here
             close(wakeup.take().unwrap().into_fd());
@@ -258,6 +274,8 @@ impl Command {
                 pid_env_vars: &pid_env_vars,
                 keep_caps: &self.keep_caps,
                 pre_exec: &self.pre_exec,
+                uid_maps: &uid_maps,
+                gid_maps: &gid_maps,
             };
             child::child_after_clone(&child_info);
         }), &mut nstack[..], self.config.namespaces, Some(SIGCHLD as i32))));
@@ -325,23 +343,6 @@ impl Command {
                     cmd.arg(format!("{}", map.count));
                 }
                 try!(cmd_result(Err::SetIdMap, cmd.status()));
-            } else {
-                let mut buf = Vec::new();
-                for map in uids {
-                    writeln!(&mut buf, "{} {} {}",
-                        map.inside_uid, map.outside_uid, map.count).unwrap();
-                }
-                try!(result(Err::SetIdMap,
-                    File::create(format!("/proc/{}/uid_map", pid))
-                    .and_then(|mut f| f.write_all(&buf[..]))));
-                let mut buf = Vec::new();
-                for map in gids {
-                    writeln!(&mut buf, "{} {} {}",
-                        map.inside_gid, map.outside_gid, map.count).unwrap();
-                }
-                try!(result(Err::SetIdMap,
-                    File::create(format!("/proc/{}/gid_map", pid))
-                    .and_then(|mut f| f.write_all(&buf[..]))));
             }
         }
         if let Some(ref mut callback) = self.before_unfreeze {

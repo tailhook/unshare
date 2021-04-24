@@ -91,7 +91,7 @@ pub enum Error {
     /// Error when calling capset syscall
     CapSet(i32),
     /// Before unfreeze callback error
-    BeforeUnfreeze(Box<::std::error::Error + Send + Sync + 'static>),
+    BeforeUnfreeze(Box<dyn (::std::error::Error) + Send + Sync + 'static>),
     /// Before exec callback error
     PreExec(i32),
 }

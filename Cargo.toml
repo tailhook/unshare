@@ -11,6 +11,7 @@ documentation = "https://docs.rs/unshare"
 categories = ["os::unix-apis"]
 version = "0.6.0"
 authors = ["paul@colomiets.name"]
+edition = "2018"
 
 [dependencies]
 libc = "0.2.93"

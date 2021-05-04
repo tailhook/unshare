@@ -9,8 +9,8 @@ use libc::{kill, signal};
 use libc::{F_GETFD, F_SETFD, F_DUPFD_CLOEXEC, FD_CLOEXEC, MNT_DETACH};
 use libc::{SIG_DFL, SIG_SETMASK};
 
-use run::{ChildInfo, MAX_PID_LEN};
-use error::ErrorCode as Err;
+use crate::run::{ChildInfo, MAX_PID_LEN};
+use crate::error::ErrorCode as Err;
 
 // And at this point we've reached a special time in the life of the
 // child. The child must now be considered hamstrung and unable to
@@ -207,7 +207,7 @@ pub unsafe fn child_after_clone(child: &ChildInfo) -> ! {
     }
 
     if child.cfg.restore_sigmask {
-        let mut sigmask: sigset_t = mem::uninitialized();
+        let mut sigmask: sigset_t = mem::zeroed();
         libc::sigemptyset(&mut sigmask);
         libc::pthread_sigmask(SIG_SETMASK, &sigmask, ptr::null_mut());
         for sig in 1..32 {
@@ -300,7 +300,7 @@ mod ffi {
 #[cfg(test)]
 mod test {
     use rand::{thread_rng, Rng};
-    use run::MAX_PID_LEN;
+    use crate::run::MAX_PID_LEN;
     use std::ffi::CStr;
     use super::format_pid_fixed;
 

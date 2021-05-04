@@ -7,8 +7,8 @@ use nix::fcntl::OFlag;
 use libc;
 use libc::{c_void, size_t};
 
-use error::{result, Error};
-use error::ErrorCode::CreatePipe;
+use crate::error::{result, Error};
+use crate::error::ErrorCode::CreatePipe;
 
 
 /// A pipe used to communicate with subprocess
@@ -32,7 +32,7 @@ pub enum PipeHolder {
 
 impl Pipe {
     pub fn new() -> Result<Pipe, Error> {
-        let (rd, wr) = try!(result(CreatePipe, pipe2(OFlag::O_CLOEXEC)));
+        let (rd, wr) = result(CreatePipe, pipe2(OFlag::O_CLOEXEC))?;
         Ok(Pipe(rd, wr))
     }
     pub fn split(self) -> (PipeReader, PipeWriter) {

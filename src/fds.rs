@@ -6,8 +6,8 @@ use nix::errno::errno;
 use libc::getrlimit;
 use libc::RLIMIT_NOFILE;
 
-use stdio::{Fd};
-use Command;
+use crate::stdio::{Fd};
+use crate::Command;
 
 
 /// This is just a temporary enum to coerce `std::ops::Range*` variants

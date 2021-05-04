@@ -2,7 +2,7 @@ use std::fmt::{self, Display};
 
 use nix::sched::CloneFlags;
 
-use Command;
+use crate::Command;
 
 
 /// This is a builder for various settings of how command may be printed
@@ -164,7 +164,7 @@ impl fmt::Debug for Command {
 
 #[cfg(test)]
 mod test {
-    use {Command, Style};
+    use crate::{Command, Style};
 
     #[test]
     fn test_debug() {

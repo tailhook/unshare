@@ -5,12 +5,12 @@ use std::path::Path;
 
 use nix::sys::signal::{Signal};
 
-use ffi_util::ToCString;
-use {Command, Namespace};
-use idmap::{UidMap, GidMap};
-use stdio::dup_file_cloexec;
-use namespace::to_clone_flag;
-use caps::Capability;
+use crate::ffi_util::ToCString;
+use crate::{Command, Namespace};
+use crate::idmap::{UidMap, GidMap};
+use crate::stdio::dup_file_cloexec;
+use crate::namespace::to_clone_flag;
+use crate::caps::Capability;
 
 
 impl Command {
@@ -154,7 +154,7 @@ impl Command {
     pub fn set_namespace<F: AsRawFd>(&mut self, file: &F, ns: Namespace)
         -> io::Result<&mut Command>
     {
-        let fd = try!(dup_file_cloexec(file));
+        let fd = dup_file_cloexec(file)?;
         self.config.setns_namespaces.insert(ns, fd);
         Ok(self)
     }

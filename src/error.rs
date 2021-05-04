@@ -1,7 +1,6 @@
 use std::io;
 use std::fmt;
-use std::error::Error as StdError;
-use status::ExitStatus;
+use crate::status::ExitStatus;
 
 use nix;
 
@@ -125,8 +124,8 @@ impl Error {
     }
 }
 
-impl StdError for Error {
-    fn description(&self) -> &'static str {
+impl Error {
+    fn title(&self) -> &'static str {
         use self::Error::*;
         match self {
             &UnknownError => "unexpected value received via signal pipe",
@@ -155,24 +154,24 @@ impl StdError for Error {
 
 impl fmt::Display for Error {
     fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
-        use Error::*;
+        use crate::Error::*;
         if let Some(code) = self.raw_os_error() {
             let errno = nix::errno::from_i32(code);
             if let nix::errno::Errno::UnknownErrno = errno {
                 // May be OS knows error name better
-                write!(fmt, "{}: {}", self.description(),
+                write!(fmt, "{}: {}", self.title(),
                     io::Error::from_raw_os_error(code))
             } else {
                 // Format similar to that of std::io::Error
-                write!(fmt, "{}: {} (os error {})", self.description(),
+                write!(fmt, "{}: {} (os error {})", self.title(),
                     errno.desc(), code)
             }
         } else {
             match self {
                 BeforeUnfreeze(err) => {
-                    write!(fmt, "{}: {}", self.description(), err)
+                    write!(fmt, "{}: {}", self.title(), err)
                 }
-                _ => write!(fmt, "{}", self.description()),
+                _ => write!(fmt, "{}", self.title()),
             }
         }
     }
@@ -189,7 +188,7 @@ pub fn result<T, E: IntoError>(code: ErrorCode, r: Result<T, E>)
 pub fn cmd_result<E: IntoError>(def_code: ErrorCode, r: Result<ExitStatus, E>)
     -> Result<(), Error>
 {
-    match try!(r.map_err(|e| e.into_error(def_code))) {
+    match r.map_err(|e| e.into_error(def_code))? {
         ExitStatus::Exited(0) => Ok(()),
         ExitStatus::Exited(x) => Err(Error::AuxCommandExited(x as i32)),
         ExitStatus::Signaled(x, _) => Err(Error::AuxCommandKilled(x as i32)),

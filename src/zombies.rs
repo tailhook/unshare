@@ -6,7 +6,7 @@ use nix::sys::wait::WaitPidFlag;
 use nix::errno::Errno::{EINTR, ECHILD};
 use nix::Error;
 
-use {ExitStatus, Signal};
+use crate::{ExitStatus, Signal};
 
 /// A non-blocking iteration over zombie processes
 ///

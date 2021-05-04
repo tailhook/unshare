@@ -20,16 +20,16 @@ use nix::sys::stat::Mode;
 use nix::sys::wait::waitpid;
 use nix::unistd::{setpgid, Pid};
 
-use child;
-use config::Config;
-use {Command, Child, ExitStatus};
-use error::{Error, result, cmd_result};
-use error::ErrorCode as Err;
-use pipe::{Pipe, PipeReader, PipeWriter, PipeHolder};
-use stdio::{Fd, Closing};
-use chroot::{Pivot, Chroot};
-use ffi_util::ToCString;
-use namespace::to_clone_flag;
+use crate::child;
+use crate::config::Config;
+use crate::{Command, Child, ExitStatus};
+use crate::error::{Error, result, cmd_result};
+use crate::error::ErrorCode as Err;
+use crate::pipe::{Pipe, PipeReader, PipeWriter, PipeHolder};
+use crate::stdio::{Fd, Closing};
+use crate::chroot::{Pivot, Chroot};
+use crate::ffi_util::ToCString;
+use crate::namespace::to_clone_flag;
 
 
 pub const MAX_PID_LEN: usize = 12;
@@ -100,14 +100,14 @@ fn prepare_descriptors(fds: &HashMap<RawFd, Fd>)
     for (&dest_fd, fdkind) in fds.iter() {
         let mut fd = match fdkind {
             &Fd::ReadPipe => {
-                let (rd, wr) = try!(Pipe::new()).split();
+                let (rd, wr) = Pipe::new()?.split();
                 let fd = rd.into_fd();
                 guards.push(Closing::new(fd));
                 outer.insert(dest_fd, PipeHolder::Writer(wr));
                 fd
             }
             &Fd::WritePipe => {
-                let (rd, wr) = try!(Pipe::new()).split();
+                let (rd, wr) = Pipe::new()?.split();
                 let fd = wr.into_fd();
                 guards.push(Closing::new(fd));
                 outer.insert(dest_fd, PipeHolder::Reader(rd));
@@ -115,19 +115,19 @@ fn prepare_descriptors(fds: &HashMap<RawFd, Fd>)
             }
             &Fd::ReadNull => {
                 // Need to keep fd with cloexec, until we are in child
-                let fd = try!(result(Err::CreatePipe,
+                let fd = result(Err::CreatePipe,
                     open(Path::new("/dev/null"),
                          OFlag::O_CLOEXEC|OFlag::O_RDONLY,
-                         Mode::empty())));
+                         Mode::empty()))?;
                 guards.push(Closing::new(fd));
                 fd
             }
             &Fd::WriteNull => {
                 // Need to keep fd with cloexec, until we are in child
-                let fd = try!(result(Err::CreatePipe,
+                let fd = result(Err::CreatePipe,
                     open(Path::new("/dev/null"),
                          OFlag::O_CLOEXEC|OFlag::O_WRONLY,
-                         Mode::empty())));
+                         Mode::empty()))?;
                 guards.push(Closing::new(fd));
                 fd
             }
@@ -141,8 +141,8 @@ fn prepare_descriptors(fds: &HashMap<RawFd, Fd>)
         // The descriptor must not clobber the descriptors that are passed to
         // a child
         while fd != dest_fd && fds.contains_key(&fd) {
-            fd = try!(result(Err::CreatePipe,
-                fcntl(fd, FcntlArg::F_DUPFD_CLOEXEC(3))));
+            fd = result(Err::CreatePipe,
+                fcntl(fd, FcntlArg::F_DUPFD_CLOEXEC(3)))?;
             guards.push(Closing::new(fd));
         }
         inner.insert(dest_fd, fd);
@@ -154,7 +154,7 @@ impl Command {
     /// Run the command and return exit status
     pub fn status(&mut self) -> Result<ExitStatus, Error> {
         // TODO(tailhook) stdin/stdout/stderr
-        try!(self.spawn())
+        self.spawn()?
         .wait()
         .map_err(|e| Error::WaitError(e.raw_os_error().unwrap_or(-1)))
     }
@@ -170,8 +170,8 @@ impl Command {
 
     unsafe fn spawn_inner(&mut self) -> Result<Child, Error> {
         // TODO(tailhook) add RAII for pipes
-        let (wakeup_rd, wakeup) = try!(Pipe::new()).split();
-        let (errpipe, errpipe_wr) = try!(Pipe::new()).split();
+        let (wakeup_rd, wakeup) = Pipe::new()?.split();
+        let (errpipe, errpipe_wr) = Pipe::new()?.split();
 
         let c_args = raw_with_null(&self.args);
 
@@ -194,7 +194,7 @@ impl Command {
         }
         let c_environ: Vec<_> = raw_with_null_mut(&mut environ);
 
-        let (int_fds, ext_fds, _guards) = try!(prepare_descriptors(&self.fds));
+        let (int_fds, ext_fds, _guards) = prepare_descriptors(&self.fds)?;
 
         let pivot = self.pivot_root.as_ref().map(|&(ref new, ref old, unmnt)| {
             Pivot {
@@ -239,7 +239,7 @@ impl Command {
         let setns_ns = self.config.setns_namespaces.iter()
             .map(|(ns, fd)| (to_clone_flag(*ns), fd.as_raw_fd()))
             .collect::<Vec<_>>();
-        let pid = try!(result(Err::Fork, clone(Box::new(|| -> isize {
+        let pid = result(Err::Fork, clone(Box::new(|| -> isize {
             // Note: mo memory allocations/deallocations here
             close(wakeup.take().unwrap().into_fd());
             let child_info = ChildInfo {
@@ -260,7 +260,7 @@ impl Command {
                 pre_exec: &self.pre_exec,
             };
             child::child_after_clone(&child_info);
-        }), &mut nstack[..], self.config.namespaces, Some(SIGCHLD as i32))));
+        }), &mut nstack[..], self.config.namespaces, Some(SIGCHLD as i32)))?;
         drop(wakeup_rd);
         drop(errpipe_wr); // close pipe so we don't wait for ourself
 
@@ -303,7 +303,7 @@ impl Command {
         -> Result<(), Error>
     {
         if self.config.make_group_leader {
-            try!(result(Err::SetPGid, setpgid(pid, pid)));
+            result(Err::SetPGid, setpgid(pid, pid))?;
         }
 
         if let Some(&(ref uids, ref gids)) = self.config.id_maps.as_ref() {
@@ -316,7 +316,7 @@ impl Command {
                     cmd.arg(format!("{}", map.outside_uid));
                     cmd.arg(format!("{}", map.count));
                 }
-                try!(cmd_result(Err::SetIdMap, cmd.status()));
+                cmd_result(Err::SetIdMap, cmd.status())?;
                 let mut cmd = Command::new(gcmd);
                 cmd.arg(format!("{}", pid));
                 for map in gids {
@@ -324,33 +324,33 @@ impl Command {
                     cmd.arg(format!("{}", map.outside_gid));
                     cmd.arg(format!("{}", map.count));
                 }
-                try!(cmd_result(Err::SetIdMap, cmd.status()));
+                cmd_result(Err::SetIdMap, cmd.status())?;
             } else {
                 let mut buf = Vec::new();
                 for map in uids {
                     writeln!(&mut buf, "{} {} {}",
                         map.inside_uid, map.outside_uid, map.count).unwrap();
                 }
-                try!(result(Err::SetIdMap,
+                result(Err::SetIdMap,
                     File::create(format!("/proc/{}/uid_map", pid))
-                    .and_then(|mut f| f.write_all(&buf[..]))));
+                    .and_then(|mut f| f.write_all(&buf[..])))?;
                 let mut buf = Vec::new();
                 for map in gids {
                     writeln!(&mut buf, "{} {} {}",
                         map.inside_gid, map.outside_gid, map.count).unwrap();
                 }
-                try!(result(Err::SetIdMap,
+                result(Err::SetIdMap,
                     File::create(format!("/proc/{}/gid_map", pid))
-                    .and_then(|mut f| f.write_all(&buf[..]))));
+                    .and_then(|mut f| f.write_all(&buf[..])))?;
             }
         }
         if let Some(ref mut callback) = self.before_unfreeze {
             callback(i32::from(pid) as u32).map_err(Error::BeforeUnfreeze)?;
         }
 
-        try!(result(Err::PipeError, wakeup.write_all(b"x")));
+        result(Err::PipeError, wakeup.write_all(b"x"))?;
         let mut err = [0u8; 6];
-        match try!(result(Err::PipeError, errpipe.read(&mut err))) {
+        match result(Err::PipeError, errpipe.read(&mut err))? {
             0 => {}  // Process successfully execve'd or dead
             5 => {
                 let code = err[0];

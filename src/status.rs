@@ -1,5 +1,5 @@
 use std::fmt;
-use {Signal};
+use crate::{Signal};
 
 
 /// The exit status of a process

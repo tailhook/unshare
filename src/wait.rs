@@ -8,8 +8,8 @@ use nix::sys::signal::{Signal, SIGKILL, kill};
 use nix::errno::Errno::EINTR;
 use libc::pid_t;
 
-use pipe::PipeHolder;
-use {Child, ExitStatus, PipeReader, PipeWriter};
+use crate::pipe::PipeHolder;
+use crate::{Child, ExitStatus, PipeReader, PipeWriter};
 
 
 impl Child {
@@ -29,7 +29,7 @@ impl Child {
         if let Some(x) = self.status {
             return Ok(x);
         }
-        let status = try!(self._wait());
+        let status = self._wait()?;
         self.status = Some(status);
         Ok(status)
     }

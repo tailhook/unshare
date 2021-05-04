@@ -6,9 +6,9 @@ use nix::sys::signal::{Signal, SIGKILL};
 use nix::sched::CloneFlags;
 use libc::{uid_t, gid_t};
 
-use idmap::{UidMap, GidMap};
-use namespace::Namespace;
-use stdio::Closing;
+use crate::idmap::{UidMap, GidMap};
+use crate::namespace::Namespace;
+use crate::stdio::Closing;
 
 
 pub struct Config {

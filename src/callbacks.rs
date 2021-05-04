@@ -1,6 +1,6 @@
 use std::io;
 
-use {Command, BoxError};
+use crate::{Command, BoxError};
 
 
 impl Command {

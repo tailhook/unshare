@@ -13,8 +13,8 @@ use std::env;
 use std::path::Path;
 
 use libc::{uid_t, gid_t};
-use ffi_util::ToCString;
-use {Command, Stdio, Fd};
+use crate::ffi_util::ToCString;
+use crate::{Command, Stdio, Fd};
 
 
 impl Command {

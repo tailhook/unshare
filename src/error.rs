@@ -21,6 +21,7 @@ pub enum ErrorCode {
     SetNs = 12,
     CapSet = 13,
     PreExec = 14,
+    SetGroupsDeny = 15,
 }
 
 /// Error runnning process
@@ -93,6 +94,8 @@ pub enum Error {
     BeforeUnfreeze(Box<dyn (::std::error::Error) + Send + Sync + 'static>),
     /// Before exec callback error
     PreExec(i32),
+    /// Writing /proc/self/setgroups < deny failed
+    SetGroupsDeny(i32)
 }
 
 impl Error {
@@ -120,6 +123,7 @@ impl Error {
             &CapSet(x) => Some(x),
             &BeforeUnfreeze(..) => None,
             &PreExec(x) => Some(x),
+            &SetGroupsDeny(x) => Some(x),
         }
     }
 }
@@ -148,6 +152,7 @@ impl Error {
             &CapSet(_) => "error when setting capabilities",
             &BeforeUnfreeze(_) => "error in before_unfreeze callback",
             &PreExec(_) => "error in pre_exec callback",
+            &SetGroupsDeny(_) => "error setting /proc/self/setgroups < deny"
         }
     }
 }
@@ -240,6 +245,7 @@ impl ErrorCode {
             C::SetNs => E::SetNs(errno),
             C::CapSet => E::CapSet(errno),
             C::PreExec => E::PreExec(errno),
+            C::SetGroupsDeny => E::SetGroupsDeny(errno),
         }
     }
     pub fn from_i32(code: i32, errno: i32) -> Error {

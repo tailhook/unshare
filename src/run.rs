@@ -334,6 +334,14 @@ impl Command {
                 result(Err::SetIdMap,
                     File::create(format!("/proc/{}/uid_map", pid))
                     .and_then(|mut f| f.write_all(&buf[..])))?;
+
+
+                let buf = "deny".as_bytes();
+
+                result(Err::SetGroupsDeny,
+                    File::create(format!("/proc/{}/setgroups", pid))
+                    .and_then(|mut f| f.write_all(&buf[..])))?;
+
                 let mut buf = Vec::new();
                 for map in gids {
                     writeln!(&mut buf, "{} {} {}",

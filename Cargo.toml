@@ -9,17 +9,17 @@ keywords = ["linux", "container", "namespace", "docker", "process"]
 homepage = "https://github.com/tailhook/unshare"
 documentation = "https://docs.rs/unshare"
 categories = ["os::unix-apis"]
-version = "0.7.0"
+version = "0.7.1"
 authors = ["paul@colomiets.name"]
 edition = "2018"
 
 [dependencies]
-libc = "0.2.93"
-nix = "0.20.0"
+libc = "0.2"
+nix = "0.21"
 
 [dev-dependencies]
-argparse = "0.2.2"
-rand = "0.8.3"
+argparse = "0.2"
+rand = "0.8"
 
 [lib]
 name = "unshare"
